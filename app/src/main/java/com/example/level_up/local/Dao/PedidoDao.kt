@@ -1,6 +1,12 @@
-package com.example.level_up.local
+package com.example.level_up.local.Dao
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import com.example.level_up.local.Entidades.PedidoEntidad
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -18,7 +24,7 @@ interface PedidoDao {
     @Query("SELECT SUM(montoFinal) FROM Pedido WHERE usuarioId = :usuarioId AND estado = 'completed'")
     suspend fun obtenerTotalGastado(usuarioId: Int): Int?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insertarPedido(pedido: PedidoEntidad): Long
 
     @Update

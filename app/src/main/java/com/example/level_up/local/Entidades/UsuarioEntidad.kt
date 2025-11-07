@@ -1,4 +1,4 @@
-package com.example.level_up.local
+package com.example.level_up.local.Entidades
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

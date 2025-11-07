@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
-import com.example.level_up.local.CarritoEntidad
-import com.example.level_up.local.ProductoEntidad
+import com.example.level_up.local.Entidades.CarritoEntidad
+import com.example.level_up.local.Entidades.ProductoEntidad
 import com.example.level_up.repository.CarritoRepository
 import com.example.level_up.repository.ProductoRepository
 import kotlinx.coroutines.flow.*

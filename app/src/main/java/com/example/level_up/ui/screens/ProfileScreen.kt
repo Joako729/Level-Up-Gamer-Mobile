@@ -20,8 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.level_up.local.PedidoEntidad
-import com.example.level_up.local.UsuarioEntidad
+import com.example.level_up.local.Entidades.PedidoEntidad
+import com.example.level_up.local.Entidades.UsuarioEntidad
 import com.example.level_up.viewmodel.AuthViewModel
 import com.example.level_up.viewmodel.ProfileViewModel
 import com.example.level_up.ui.theme.GreenAccent

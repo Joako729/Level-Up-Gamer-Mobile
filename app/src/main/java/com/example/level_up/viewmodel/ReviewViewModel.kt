@@ -4,9 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
-import com.example.level_up.local.ProductoEntidad
-import com.example.level_up.local.ReseniaEntidad
-import com.example.level_up.local.UsuarioEntidad
+import com.example.level_up.local.Entidades.ProductoEntidad
+import com.example.level_up.local.Entidades.ReseniaEntidad
+import com.example.level_up.local.Entidades.UsuarioEntidad
 import com.example.level_up.repository.ProductoRepository
 import com.example.level_up.repository.ReseniaRepository
 import com.example.level_up.repository.UsuarioRepository

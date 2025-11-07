@@ -1,6 +1,11 @@
-package com.example.level_up.local
+package com.example.level_up.local.Dao
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import com.example.level_up.local.Entidades.UsuarioEntidad
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -18,7 +23,7 @@ interface UsuarioDao {
     @Query("SELECT * FROM Usuario ORDER BY puntosLevelUp DESC LIMIT 10")
     fun obtenerTopUsuarios(): Flow<List<UsuarioEntidad>>
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert(onConflict = OnConflictStrategy.Companion.ABORT)
     suspend fun insertar(usuario: UsuarioEntidad): Long
 
     @Update

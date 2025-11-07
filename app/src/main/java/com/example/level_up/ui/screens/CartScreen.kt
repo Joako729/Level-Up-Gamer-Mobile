@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.level_up.local.CarritoEntidad
+import com.example.level_up.local.Entidades.CarritoEntidad
 import com.example.level_up.viewmodel.CartViewModel
 import com.example.level_up.ui.theme.GreenAccent
 

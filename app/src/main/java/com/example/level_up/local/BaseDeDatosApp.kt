@@ -4,6 +4,16 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.level_up.local.Dao.CarritoDao
+import com.example.level_up.local.Dao.PedidoDao
+import com.example.level_up.local.Dao.ProductoDao
+import com.example.level_up.local.Dao.ReseniaDao
+import com.example.level_up.local.Dao.UsuarioDao
+import com.example.level_up.local.Entidades.CarritoEntidad
+import com.example.level_up.local.Entidades.PedidoEntidad
+import com.example.level_up.local.Entidades.ProductoEntidad
+import com.example.level_up.local.Entidades.ReseniaEntidad
+import com.example.level_up.local.Entidades.UsuarioEntidad
 
 @Database(
     entities = [

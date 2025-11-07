@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
-import com.example.level_up.local.PedidoEntidad
-import com.example.level_up.local.UsuarioEntidad
+import com.example.level_up.local.Entidades.PedidoEntidad
+import com.example.level_up.local.Entidades.UsuarioEntidad
 import com.example.level_up.repository.PedidoRepository
 import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion

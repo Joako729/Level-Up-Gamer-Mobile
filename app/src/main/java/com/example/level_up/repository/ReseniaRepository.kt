@@ -1,7 +1,7 @@
 package com.example.level_up.repository
 
-import com.example.level_up.local.ReseniaDao
-import com.example.level_up.local.ReseniaEntidad
+import com.example.level_up.local.Dao.ReseniaDao
+import com.example.level_up.local.Entidades.ReseniaEntidad
 import kotlinx.coroutines.flow.Flow
 
 class ReseniaRepository(private val dao: ReseniaDao) {
