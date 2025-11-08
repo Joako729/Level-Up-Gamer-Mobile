@@ -67,6 +67,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Catan",
                 precio = 35269,
                 stock = 8,
+                urlImagen = "catan",
                 descripcion = "Un clásico juego de estrategia donde los jugadores compiten por colonizar y expandirse en la isla de Catan. Ideal para 3-4 jugadores.",
                 fabricante = "Catan Studio",
                 destacado = true
@@ -77,6 +78,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Carcassonne",
                 precio = 29389,
                 stock = 6,
+                urlImagen = "carcassonne",
                 descripcion = "Un juego de colocación de fichas donde los jugadores construyen el paisaje alrededor de la fortaleza medieval de Carcassonne.",
                 fabricante ="Z-Man Games",
                 destacado = true
@@ -87,6 +89,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Controlador Inalámbrico Kairox X",
                 precio = 70549,
                 stock = 12,
+                urlImagen = "controlador",
                 descripcion = "Ofrece una experiencia de juego cómoda con botones mapeables y una respuesta táctil mejorada.",
                 fabricante = "Microsoft",
                 destacado = true
@@ -97,6 +100,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Auriculares Gamer Starforge Cloud II",
                 precio = 94069,
                 stock = 6,
+                urlImagen = "auri",
                 descripcion = "Proporcionan un sonido envolvente de calidad con un micrófono desmontable y almohadillas de espuma viscoelástica.",
                 fabricante = "Starforge",
                 destacado = true
@@ -107,6 +111,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Zenith Pro",
                 precio = 646789,
                 stock = 5,
+                urlImagen = "play5",
                 descripcion = "La consola de última generación de Sony, que ofrece gráficos impresionantes y tiempos de carga ultrarrápidos.",
                 fabricante = "Sony",
                 destacado = true
@@ -117,6 +122,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "PC Gamer ASUS ROG Strix",
                 precio = 1528789,
                 stock = 3,
+                urlImagen = "pcgamer",
                 descripcion = "Un potente equipo diseñado para los gamers más exigentes, equipado con los últimos componentes.",
                 fabricante = "ASUS",
                 destacado = true
@@ -127,6 +133,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Silla Gamer Secretlab Titan",
                 precio = 411589,
                 stock = 4,
+                urlImagen = "sillagamer",
                 descripcion = "Diseñada para el máximo confort, esta silla ofrece un soporte ergonómico y personalización ajustable.",
                 fabricante = "Secretlab",
                 destacado = false
@@ -137,6 +144,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Mouse Gamer Orionis G502 HERO",
                 precio = 58789,
                 stock = 10,
+                urlImagen = "mousegamer",
                 descripcion = "Con sensor de alta precisión y botones personalizables, este mouse es ideal para gamers que buscan control preciso.",
                 fabricante = "Orionis",
                 destacado = false
@@ -147,6 +155,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Mousepad Heliox Goliathus Extended Chroma",
                 precio = 35269,
                 stock = 8,
+                urlImagen = "mousepad",
                 descripcion = "Ofrece un área de juego amplia con iluminación RGB personalizable, asegurando una superficie suave y uniforme.",
                 fabricante = "Heliox",
                 destacado = false
@@ -157,6 +166,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 nombre = "Polera Gamer Personalizada 'Level-Up'",
                 precio = 17629,
                 stock = 20,
+                urlImagen = "polera",
                 descripcion = "Una camiseta cómoda y estilizada, con la posibilidad de personalizarla con tu gamer tag o diseño favorito.",
                 fabricante = "Level-Up Gamer",
                 destacado = false
