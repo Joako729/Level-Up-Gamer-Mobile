@@ -90,7 +90,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 precio = 70549,
                 stock = 12,
                 urlImagen = "controlador",
-                descripcion = "Ofrece una experiencia de juego cómoda con botones mapeables y una respuesta táctil mejorada.",
+                descripcion = "Disfruta de la máxima precisión con este control inalámbrico compatible con Xbox y PC, con agarres texturizados y una cruceta híbrida.",
                 fabricante = "Microsoft",
                 destacado = true
             ),
@@ -108,7 +108,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
             ProductoEntidad(
                 codigo = "CO001",
                 categoria = "Consolas",
-                nombre = "Zenith Pro",
+                nombre = "Consola PlayStation 5",
                 precio = 646789,
                 stock = 5,
                 urlImagen = "play5",

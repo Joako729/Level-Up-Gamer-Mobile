@@ -1,5 +1,7 @@
 package com.example.level_up.ui.screens
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,20 +15,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.level_up.R
 import com.example.level_up.local.Entidades.ProductoEntidad
+import com.example.level_up.ui.theme.GreenAccent
 import com.example.level_up.viewmodel.AuthViewModel
 import com.example.level_up.viewmodel.CatalogViewModel
-import com.example.level_up.ui.theme.GreenAccent
 
 data class AccionRapida(
     val titulo: String,
     val icono: ImageVector,
     val ruta: String
+)
+
+data class CategoryNavigationItem(
+    val title: String,
+    @DrawableRes val imageRes: Int,
+    val categoryFilter: String
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +56,12 @@ fun HomeScreen(navController: NavController) {
         AccionRapida("Mi Perfil", Icons.Default.Person, Routes.PROFILE)
     )
 
+    val categoryNavItems = listOf(
+        CategoryNavigationItem("Accesorios", R.drawable.accesorios, "Accesorios"),
+        CategoryNavigationItem("Consolas", R.drawable.consolas, "Consolas"),
+        CategoryNavigationItem("PCs Gamers", R.drawable.pcs, "Computadores Gamers")
+    )
+
     Scaffold(
         topBar = { QuickActionsBar(acciones, navController) },
         containerColor = MaterialTheme.colorScheme.background
@@ -51,7 +69,8 @@ fun HomeScreen(navController: NavController) {
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize()
+                .fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             // Header
             item {
@@ -97,7 +116,6 @@ fun HomeScreen(navController: NavController) {
 
             // Gaming News
             item {
-                Spacer(modifier = Modifier.height(16.dp))
                 SectionTitle("Noticias del Mundo Gamer")
                 GamingNewsCard(modifier = Modifier.padding(horizontal = 16.dp))
                 Spacer(modifier = Modifier.height(24.dp))
@@ -106,7 +124,6 @@ fun HomeScreen(navController: NavController) {
             // Productos Destacados
             if (productosDestacados.isNotEmpty()) {
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
                     SectionTitle("Productos Destacados")
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -118,6 +135,26 @@ fun HomeScreen(navController: NavController) {
                                 onClick = { /* Navigate to product details */ }
                             )
                         }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+
+            // Category Navigation
+            item {
+                SectionTitle("Explorar Categorías")
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(categoryNavItems) { item ->
+                        CategoryNavigationCard(
+                            item = item,
+                            onClick = {
+                                catalogViewModel.updateSelectedCategory(item.categoryFilter)
+                                navController.navigate(Routes.CATALOG)
+                            }
+                        )
                     }
                 }
             }
@@ -240,29 +277,23 @@ fun GamingNewsCard(modifier: Modifier = Modifier) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            Box(
+            Image(
+                painter = painterResource(id = R.drawable.noticia1),
+                contentDescription = "Noticia sobre Realidad Virtual",
                 modifier = Modifier
                     .height(150.dp)
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Newspaper,
-                    contentDescription = "Gaming News",
-                    modifier = Modifier.size(60.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+                    .fillMaxWidth(),
+                contentScale = ContentScale.Crop
+            )
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Un nuevo parche para 'Cyberpunk 2077' mejora el rendimiento en consolas",
+                    text = "El Futuro es Ahora: La Nueva Era de la Realidad Virtual",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "CD Projekt Red ha lanzado una actualización sorpresa que promete optimizar la experiencia de juego...",
+                    text = "Sumérgete en mundos asombrosos con la última generación de visores VR. La tecnología háptica y el seguimiento ocular llevan la inmersión a un nivel nunca antes visto.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -270,6 +301,39 @@ fun GamingNewsCard(modifier: Modifier = Modifier) {
                 TextButton(onClick = { /* Leer más */ }) {
                     Text("Leer más")
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CategoryNavigationCard(
+    item: CategoryNavigationItem,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.width(160.dp),
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column {
+            Image(
+                painter = painterResource(id = item.imageRes),
+                contentDescription = item.title,
+                modifier = Modifier
+                    .height(80.dp)
+                    .fillMaxWidth(),
+                contentScale = ContentScale.Crop
+            )
+            Box(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
