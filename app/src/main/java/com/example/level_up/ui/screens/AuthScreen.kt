@@ -24,75 +24,88 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.level_up.viewmodel.AuthViewModel
 import com.example.level_up.viewmodel.AuthState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(navController: NavController, vm: AuthViewModel = viewModel()) {
     val state by vm.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
-            navController.navigate(Routes.HOME) {
-                popUpTo(Routes.HOME) { inclusive = true }
+            coroutineScope.launch {
+                val message = if (state.isIngresarMode) "Inicio de sesión correcto" else "Registro completado"
+                snackbarHostState.showSnackbar(message)
+                delay(1500) // Espera para que el usuario lea el mensaje
+                vm.clearSuccess()
+                navController.navigate(Routes.HOME) {
+                    popUpTo(Routes.HOME) { inclusive = true }
+                }
             }
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(it) // Usar el padding del Scaffold
+                .background(MaterialTheme.colorScheme.background)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = if (state.isIngresarMode) "Bienvenido de Vuelta" else "Crea tu Cuenta",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = if (state.isIngresarMode) "Inicia sesión para continuar" else "Únete a la comunidad gamer",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-            )
-            Spacer(Modifier.height(32.dp))
-
-            if (state.errors.containsKey("general")) {
-                Text(state.errors["general"]!!, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(16.dp))
-            }
-
-            // Form fields
-            AuthForm(state, vm)
-
-            Spacer(Modifier.height(24.dp))
-
-            // Action Button
-            Button(
-                onClick = { if (state.isIngresarMode) vm.login() else vm.register() },
-                enabled = !state.isLoading,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = MaterialTheme.shapes.medium
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text(
-                        if (state.isIngresarMode) "Ingresar" else "Registrarse",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+                Text(
+                    text = if (state.isIngresarMode) "Bienvenido de Vuelta" else "Crea tu Cuenta",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = if (state.isIngresarMode) "Inicia sesión para continuar" else "Únete a la comunidad gamer",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+                Spacer(Modifier.height(32.dp))
 
-            // Toggle mode
-            TextButton(onClick = { vm.toggleMode() }) {
-                Text(if (state.isIngresarMode) "¿No tienes cuenta? Regístrate" else "¿Ya tienes cuenta? Inicia sesión")
+                if (state.errors.containsKey("general")) {
+                    Text(state.errors["general"]!!, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(16.dp))
+                }
+
+                // Form fields
+                AuthForm(state, vm)
+
+                Spacer(Modifier.height(24.dp))
+
+                // Action Button
+                Button(
+                    onClick = { if (state.isIngresarMode) vm.login() else vm.register() },
+                    enabled = !state.isLoading,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    if (state.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text(
+                            if (state.isIngresarMode) "Ingresar" else "Registrarse",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Toggle mode
+                TextButton(onClick = { vm.toggleMode() }) {
+                    Text(if (state.isIngresarMode) "¿No tienes cuenta? Regístrate" else "¿Ya tienes cuenta? Inicia sesión")
+                }
             }
         }
     }
