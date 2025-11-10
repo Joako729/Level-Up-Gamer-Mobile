@@ -31,7 +31,7 @@ import com.example.level_up.ui.theme.GreenAccent
 @Composable
 fun CatalogScreen(
     navController: NavController,
-    vm: CatalogViewModel = viewModel()
+    vm: CatalogViewModel
 ) {
     val state by vm.state.collectAsState()
     val products by vm.products.collectAsState()

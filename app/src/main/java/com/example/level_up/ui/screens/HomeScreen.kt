@@ -44,9 +44,8 @@ data class CategoryNavigationItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel) {
     val authViewModel: AuthViewModel = viewModel()
-    val catalogViewModel: CatalogViewModel = viewModel()
 
     val estadoAuth by authViewModel.state.collectAsState()
     val productosDestacados by catalogViewModel.featuredProducts.collectAsState()

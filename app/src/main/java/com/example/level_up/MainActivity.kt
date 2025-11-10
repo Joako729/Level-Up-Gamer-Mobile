@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.compose.rememberNavController
 import com.example.level_up.ui.screens.LevelUpNavHost
 import com.example.level_up.ui.theme.*
 
@@ -32,7 +33,8 @@ class MainActivity : ComponentActivity() {
                     launcher.launch(permissionsToRequest)
                 }
 
-                LevelUpNavHost()
+                val navController = rememberNavController()
+                LevelUpNavHost(navController = navController)
             }
         }
     }
