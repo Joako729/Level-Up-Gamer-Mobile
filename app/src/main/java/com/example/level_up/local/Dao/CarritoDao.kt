@@ -7,10 +7,18 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.example.level_up.local.Entidades.CarritoEntidad
+import com.example.level_up.local.model.CarritoItemConImagen
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CarritoDao {
+
+    @Query("""
+        SELECT c.id, c.productoId, c.nombre, c.precio, c.cantidad, p.urlImagen
+        FROM carrito c
+        INNER JOIN Producto p ON c.productoId = p.id
+    """)
+    fun observarCarritoConImagenes(): Flow<List<CarritoItemConImagen>>
 
     @Query("SELECT * FROM carrito")
     fun observarCarrito(): Flow<List<CarritoEntidad>>

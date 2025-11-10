@@ -7,6 +7,7 @@ import com.example.level_up.local.BaseDeDatosApp
 import com.example.level_up.local.Entidades.CarritoEntidad
 import com.example.level_up.local.Entidades.PedidoEntidad
 import com.example.level_up.local.Entidades.UsuarioEntidad
+import com.example.level_up.local.model.CarritoItemConImagen
 import com.example.level_up.repository.CarritoRepository
 import com.example.level_up.repository.PedidoRepository
 import com.example.level_up.repository.UsuarioRepository
@@ -31,7 +32,7 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(CartState())
     val state: StateFlow<CartState> = _state.asStateFlow()
 
-    val items: StateFlow<List<CarritoEntidad>> = cartRepo.observarCarrito()
+    val items: StateFlow<List<CarritoItemConImagen>> = cartRepo.observarCarritoConImagenes()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val subtotal: StateFlow<Int> = items
@@ -70,11 +71,11 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun updateQuantity(item: CarritoEntidad, newQuantity: Int) {
+    fun updateQuantity(item: CarritoItemConImagen, newQuantity: Int) {
         viewModelScope.launch {
             try {
                 if (newQuantity <= 0) {
-                    cartRepo.eliminarItemCarrito(item)
+                    cartRepo.eliminarPorId(item.id)
                 } else {
                     cartRepo.actualizarCantidad(item.productoId, newQuantity)
                 }
@@ -88,16 +89,6 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 cartRepo.eliminarPorId(id)
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(error = "Error al eliminar producto: ${e.message}")
-            }
-        }
-    }
-
-    fun removeItem(item: CarritoEntidad) {
-        viewModelScope.launch {
-            try {
-                cartRepo.eliminarItemCarrito(item)
             } catch (e: Exception) {
                 _state.value = _state.value.copy(error = "Error al eliminar producto: ${e.message}")
             }

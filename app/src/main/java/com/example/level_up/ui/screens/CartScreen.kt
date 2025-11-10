@@ -1,5 +1,6 @@
 package com.example.level_up.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,16 +10,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.level_up.local.Entidades.CarritoEntidad
+import com.example.level_up.local.model.CarritoItemConImagen
 import com.example.level_up.viewmodel.CartViewModel
 import com.example.level_up.ui.theme.GreenAccent
 
@@ -87,7 +89,7 @@ fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
 }
 
 @Composable
-fun CartItem(item: CarritoEntidad, vm: CartViewModel) {
+fun CartItem(item: CarritoItemConImagen, vm: CartViewModel) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -95,14 +97,35 @@ fun CartItem(item: CarritoEntidad, vm: CartViewModel) {
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.medium),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Image, contentDescription = "Product Image", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+            val context = LocalContext.current
+            val imageResId = remember(item.urlImagen) {
+                if (item.urlImagen.isNotBlank()) {
+                    context.resources.getIdentifier(item.urlImagen, "drawable", context.packageName)
+                } else {
+                    0
+                }
             }
+
+            if (imageResId != 0) {
+                Image(
+                    painter = painterResource(id = imageResId),
+                    contentDescription = item.nombre,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.medium),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.medium),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Image, contentDescription = "Product Image Placeholder", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                }
+            }
+
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -119,7 +142,7 @@ fun CartItem(item: CarritoEntidad, vm: CartViewModel) {
 }
 
 @Composable
-fun QuantityControl(item: CarritoEntidad, vm: CartViewModel) {
+fun QuantityControl(item: CarritoItemConImagen, vm: CartViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         IconButton(
             onClick = { vm.updateQuantity(item, item.cantidad - 1) },
