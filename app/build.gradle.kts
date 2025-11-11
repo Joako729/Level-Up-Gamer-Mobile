@@ -62,4 +62,15 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // ... (Tus otras dependencias)
+
+// Retrofit (Para hacer la llamada HTTP)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+
+// Gson Converter (Para manejar el JSON)
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+// Kotlin Coroutines (Necesario para Retrofit en ViewModel, aunque ya tienes algunas versiones)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
