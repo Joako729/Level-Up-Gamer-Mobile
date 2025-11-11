@@ -104,7 +104,6 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                 codigoReferido = referralCode,
                 referidoPor = s.refCode.takeIf { it.isNotBlank() } ?: ""
             )
-
             repo.insertar(user)
             _state.value = s.copy(
                 isLoading = false,

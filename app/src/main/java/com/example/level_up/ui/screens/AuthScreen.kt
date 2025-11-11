@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -121,6 +122,14 @@ fun AuthForm(state: AuthState, vm: AuthViewModel) {
                 label = "Nombre",
                 leadingIcon = Icons.Default.Person,
                 error = state.errors["name"]
+            )
+            AuthTextField(
+                value = state.age,
+                onValueChange = { vm.onAge(it) },
+                label = "Edad",
+                leadingIcon = Icons.Default.Cake,
+                keyboardType = KeyboardType.Number,
+                error = state.errors["age"]
             )
         }
 
