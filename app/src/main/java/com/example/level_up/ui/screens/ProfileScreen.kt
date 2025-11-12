@@ -1,5 +1,9 @@
 package com.example.level_up.ui.screens
 
+import android.Manifest
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -100,6 +105,30 @@ fun ProfileLoggedIn(
     orders: List<PedidoEntidad>,
     navController: NavController
 ) {
+    val context = LocalContext.current
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+                Toast.makeText(context, "Permiso de ubicación concedido", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            if (uri != null) {
+                Toast.makeText(context, "Archivo seleccionado: $uri", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "No se seleccionó ningún archivo", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 24.dp)
@@ -159,6 +188,33 @@ fun ProfileLoggedIn(
                 shape = MaterialTheme.shapes.medium
             ) {
                 Text("Dejar una reseña")
+            }
+            Spacer(Modifier.height(16.dp))
+            Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp))
+        }
+
+        // Location and File Chooser buttons
+        item {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Button(
+                    onClick = { locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(Icons.Default.LocationOn, contentDescription = "Ubicación", modifier = Modifier.size(ButtonDefaults.IconSize))
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("Obtener Ubicación")
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { filePickerLauncher.launch("*/*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(Icons.Default.AttachFile, contentDescription = "Adjuntar Archivo", modifier = Modifier.size(ButtonDefaults.IconSize))
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("Adjuntar Archivo")
+                }
             }
             Spacer(Modifier.height(16.dp))
             Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp))
