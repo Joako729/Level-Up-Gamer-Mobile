@@ -14,6 +14,7 @@ object Routes {
     const val CART = "cart"
     const val PROFILE = "profile"
     const val AUTH = "auth"
+    const val ADD_REVIEW = "add_review"
 }
 
 @Composable
@@ -26,5 +27,6 @@ fun LevelUpNavHost(navController: NavHostController = rememberNavController()) {
         composable(Routes.CART) { CartScreen(navController) }
         composable(Routes.PROFILE) { ProfileScreen(navController) }
         composable(Routes.AUTH) { AuthScreen(navController) }
+        composable(Routes.ADD_REVIEW) { AddReviewScreen(navController) }
     }
 }

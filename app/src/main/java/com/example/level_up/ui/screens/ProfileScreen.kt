@@ -83,6 +83,7 @@ fun ProfileScreen(
                     ProfileLoggedIn(
                         user = currentUser,
                         orders = profileState.userOrders,
+                        navController = navController
                     )
                 }
                 else -> {
@@ -96,7 +97,8 @@ fun ProfileScreen(
 @Composable
 fun ProfileLoggedIn(
     user: UsuarioEntidad,
-    orders: List<PedidoEntidad>
+    orders: List<PedidoEntidad>,
+    navController: NavController
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -142,6 +144,21 @@ fun ProfileLoggedIn(
                 StatCard(icon = Icons.Default.WorkspacePremium, title = "Nivel", value = "${user.nivel}")
                 StatCard(icon = Icons.Default.Star, title = "Puntos", value = "${user.puntosLevelUp}")
                 StatCard(icon = Icons.Default.Redeem, title = "Compras", value = "${user.totalCompras}")
+            }
+            Spacer(Modifier.height(16.dp))
+            Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp))
+        }
+
+        // Add review button
+        item {
+            Button(
+                onClick = { navController.navigate(Routes.ADD_REVIEW) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text("Dejar una reseña")
             }
             Spacer(Modifier.height(16.dp))
             Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp))
