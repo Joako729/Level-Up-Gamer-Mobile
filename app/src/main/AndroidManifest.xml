@@ -17,18 +17,18 @@
         android:label="MercurioGo"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:theme="@style/Theme.Levelup"
+        android:usesCleartextTraffic="true"> <activity
+        android:name=".MainActivity"
+        android:exported="true"
+        android:label="MercurioGo"
         android:theme="@style/Theme.Levelup">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="MercurioGo"
-            android:theme="@style/Theme.Levelup">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+    </activity>
     </application>
 
 </manifest>

@@ -6,9 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
 import com.example.level_up.local.Entidades.CarritoEntidad
-import com.example.level_up.local.Entidades.ProductoEntidad // Se mantiene el modelo local para la BD Room/Carrito
-import com.example.level_up.local.model.ProductoRemoto // NUEVO: Importa el modelo de datos de la API
-import com.example.level_up.remote.service.RetrofitClient // NUEVO
+import com.example.level_up.local.Entidades.ProductoEntidad
+import com.example.level_up.local.model.ProductoRemoto
+import com.example.level_up.remote.service.RetrofitClient
 import com.example.level_up.repository.CarritoRepository
 import com.example.level_up.repository.ProductoRepository
 import kotlinx.coroutines.flow.*
@@ -53,9 +53,11 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    // NUEVO: La lista de categorías ahora se obtiene de los productos cargados de la API
+    // FIX FINAL: Filtra los valores nulos (String?) antes de crear la lista de categorías (String)
     val categories = _productosAPI.map { list ->
-        list.map { it.categoria }.distinct()
+        list.map { it.categoria }
+            .filterNotNull() // <--- CORRIGE EL ERROR DE LIST<STRING?>
+            .distinct()
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
@@ -124,20 +126,20 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // FUNCIÓN DE CONVERSIÓN: Mapea el modelo remoto al modelo local ProductoEntidad
+    // FUNCIÓN DE CONVERSIÓN: Robusta para todos los campos nulos
     private fun ProductoRemoto.toProductoEntidad(): ProductoEntidad {
         return ProductoEntidad(
             id = this.id.toInt(),
-            codigo = this.codigo,
-            categoria = this.categoria,
-            nombre = this.nombre,
-            precio = this.precio,
-            stock = this.stock,
-            valoracion = this.valoracion,
-            descripcion = this.descripcion,
-            urlImagen = this.urlImagen,
-            fabricante = this.fabricante,
-            destacado = this.destacado
+            codigo = this.codigo ?: "N/A",
+            categoria = this.categoria ?: "General",
+            nombre = this.nombre ?: "Producto Desconocido",
+            precio = this.precio?.toInt() ?: 0, // FIX: Lee Double y convierte a Int de forma segura
+            stock = this.stock ?: 0,
+            valoracion = this.valoracion ?: 0f,
+            descripcion = this.descripcion ?: "",
+            urlImagen = this.urlImagen ?: "",
+            fabricante = this.fabricante ?: "",
+            destacado = this.destacado ?: false
         )
     }
 

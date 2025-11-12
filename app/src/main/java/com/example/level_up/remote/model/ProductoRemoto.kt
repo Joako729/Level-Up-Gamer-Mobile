@@ -1,18 +1,18 @@
-package com.example.level_up.local.model // Usa un paquete lógico
+package com.example.level_up.local.model
 
 import com.google.gson.annotations.SerializedName
 
-// Este modelo debe COINCIDIR EXACTAMENTE con la Entidad Producto de tu servidor Spring Boot
+// MODELO FINAL: Todos los campos sensibles a errores de API son opcionales
 data class ProductoRemoto(
     val id: Long,
-    val nombre: String,
-    val precio: Int, // En tu Entidad local ProductoEntidad el precio es Int
-    val categoria: String,
-    val codigo: String,
-    val stock: Int,
-    val descripcion: String,
-    val urlImagen: String,
-    val fabricante: String,
-    val valoracion: Float,
-    val destacado: Boolean
+    val nombre: String?,
+    val precio: Double?, // FIX: Cambiado a Double? para aceptar decimales
+    val categoria: String?,
+    val codigo: String?,
+    val stock: Int?,
+    val descripcion: String?,
+    val urlImagen: String?,
+    val fabricante: String?,
+    val valoracion: Float?,
+    val destacado: Boolean?
 )
