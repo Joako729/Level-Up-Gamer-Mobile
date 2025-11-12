@@ -4,11 +4,13 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.level_up.local.Dao.AppReseniaDao
 import com.example.level_up.local.Dao.CarritoDao
 import com.example.level_up.local.Dao.PedidoDao
 import com.example.level_up.local.Dao.ProductoDao
 import com.example.level_up.local.Dao.ReseniaDao
 import com.example.level_up.local.Dao.UsuarioDao
+import com.example.level_up.local.Entidades.AppReseniaEntidad
 import com.example.level_up.local.Entidades.CarritoEntidad
 import com.example.level_up.local.Entidades.PedidoEntidad
 import com.example.level_up.local.Entidades.ProductoEntidad
@@ -21,9 +23,10 @@ import com.example.level_up.local.Entidades.UsuarioEntidad
         UsuarioEntidad::class,
         CarritoEntidad::class,
         ReseniaEntidad::class,
-        PedidoEntidad::class
+        PedidoEntidad::class,
+        AppReseniaEntidad::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class BaseDeDatosApp : RoomDatabase() {
@@ -33,6 +36,7 @@ abstract class BaseDeDatosApp : RoomDatabase() {
     abstract fun CarritoDao(): CarritoDao
     abstract fun ReseniaDao(): ReseniaDao
     abstract fun PedidoDao(): PedidoDao
+    abstract fun AppReseniaDao(): AppReseniaDao
 
     companion object {
         @Volatile private var INSTANCIA: BaseDeDatosApp? = null

@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
+import com.example.level_up.local.Entidades.AppReseniaEntidad
 import com.example.level_up.local.Entidades.PedidoEntidad
 import com.example.level_up.local.Entidades.UsuarioEntidad
+import com.example.level_up.repository.AppReseniaRepository
 import com.example.level_up.repository.PedidoRepository
 import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion
@@ -18,18 +20,25 @@ data class ProfileState(
     val isEditing: Boolean = false,
     val currentUser: UsuarioEntidad? = null,
     val userOrders: List<PedidoEntidad> = emptyList(),
-    val totalSpent: Int = 0
+    val totalSpent: Int = 0,
+    val isSubmittingReview: Boolean = false,
+    val reviewSubmitSuccess: Boolean = false
 )
 
 class ProfileViewModel(app: Application) : AndroidViewModel(app) {
     private val db = BaseDeDatosApp.obtener(app)
     private val userRepo = UsuarioRepository(db.UsuarioDao())
     private val orderRepo = PedidoRepository(db.PedidoDao())
+    private val appReseniaRepo = AppReseniaRepository(db.AppReseniaDao())
 
     private val _state = MutableStateFlow(ProfileState())
     val state: StateFlow<ProfileState> = _state.asStateFlow()
 
-    fun loadUserData() { 
+    init {
+        loadUserData()
+    }
+
+    fun loadUserData() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
             try {
@@ -59,6 +68,42 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
                 )
             }
         }
+    }
+
+    fun submitAppReview(rating: Float, comment: String) {
+        viewModelScope.launch {
+            val user = _state.value.currentUser
+            if (user == null) {
+                _state.value = _state.value.copy(error = "Debes iniciar sesión para dejar una reseña")
+                return@launch
+            }
+
+            _state.value = _state.value.copy(isSubmittingReview = true)
+
+            try {
+                val review = AppReseniaEntidad(
+                    usuarioId = user.id,
+                    nombreUsuario = user.nombre,
+                    valoracion = rating,
+                    comentario = comment.trim()
+                )
+                appReseniaRepo.insertarResena(review)
+                _state.value = _state.value.copy(
+                    isSubmittingReview = false,
+                    reviewSubmitSuccess = true,
+                    error = null
+                )
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    isSubmittingReview = false,
+                    error = "Error al enviar la reseña: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun clearReviewSubmitSuccess() {
+        _state.value = _state.value.copy(reviewSubmitSuccess = false)
     }
 
     fun updateUser(updatedUser: UsuarioEntidad) {
