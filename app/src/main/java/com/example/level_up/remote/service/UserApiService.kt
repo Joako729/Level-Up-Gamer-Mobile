@@ -5,15 +5,19 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 
+// 1. DTO NECESARIO PARA EL LOGIN: Retrofit lo usa para crear el JSON del Body
+data class LoginRequest(
+    val correo: String,
+    val contrasena: String
+)
+
 interface UserApiService {
 
-    // Llama a POST http://10.0.2.2:8080/api/usuarios/registro
+    // Endpoint para Registro
     @POST("api/usuarios/registro")
     suspend fun register(@Body user: UsuarioEntidad): Response<UsuarioEntidad>
 
-    // Llama a POST http://10.0.2.2:8080/api/usuarios/login
-    // Nota: Necesitarás un DTO más simple para el body del login (ej: Correo y Contrasena)
-    // Por simplicidad, asumiremos que el backend acepta el DTO LoginRequest que definimos antes
+    // Endpoint para Login: Ahora usa el DTO LoginRequest
     @POST("api/usuarios/login")
-    suspend fun login(@Body request: Any): Response<UsuarioEntidad>
+    suspend fun login(@Body request: LoginRequest): Response<UsuarioEntidad>
 }
