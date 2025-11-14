@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -290,6 +291,9 @@ fun TarjetaProductoDestacado(
 
 @Composable
 fun GamingNewsCard(modifier: Modifier = Modifier) {
+    val uriHandler = LocalUriHandler.current
+    val newsUrl = "https://www.xataka.com/tag/realidad-virtual"
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -318,7 +322,7 @@ fun GamingNewsCard(modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                TextButton(onClick = { /* Leer más */ }) {
+                TextButton(onClick = { uriHandler.openUri(newsUrl) }) {
                     Text("Leer más")
                 }
             }
