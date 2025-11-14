@@ -38,10 +38,11 @@ fun ProfileScreen(
     authViewModel: AuthViewModel = viewModel(),
     profileViewModel: ProfileViewModel = viewModel()
 ) {
+    val authState by authViewModel.state.collectAsState()
     val profileState by profileViewModel.state.collectAsState()
     val currentUser = profileState.currentUser
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(authState.currentUser) {
         profileViewModel.loadUserData()
     }
 
@@ -52,18 +53,6 @@ fun ProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                actions = {
-                    if (currentUser != null) {
-                        IconButton(onClick = {
-                            authViewModel.logout()
-                            navController.navigate(Routes.HOME) {
-                                popUpTo(Routes.HOME) { inclusive = true }
-                            }
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Cerrar Sesión")
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -88,7 +77,8 @@ fun ProfileScreen(
                     ProfileLoggedIn(
                         user = currentUser,
                         orders = profileState.userOrders,
-                        navController = navController
+                        navController = navController,
+                        authViewModel = authViewModel
                     )
                 }
                 else -> {
@@ -103,7 +93,8 @@ fun ProfileScreen(
 fun ProfileLoggedIn(
     user: UsuarioEntidad,
     orders: List<PedidoEntidad>,
-    navController: NavController
+    navController: NavController,
+    authViewModel: AuthViewModel
 ) {
     val context = LocalContext.current
 
@@ -246,6 +237,28 @@ fun ProfileLoggedIn(
         } else {
             items(orders) { order ->
                 OrderHistoryItem(order, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            }
+        }
+        
+        // Logout Button
+        item {
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    authViewModel.logout()
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Cerrar Sesión", modifier = Modifier.size(ButtonDefaults.IconSize))
+                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                Text("Cerrar Sesión")
             }
         }
     }
