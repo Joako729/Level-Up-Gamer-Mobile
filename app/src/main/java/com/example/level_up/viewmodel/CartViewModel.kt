@@ -4,15 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
-import com.example.level_up.local.Entidades.CarritoEntidad
 import com.example.level_up.local.Entidades.PedidoEntidad
 import com.example.level_up.local.Entidades.UsuarioEntidad
 import com.example.level_up.local.model.CarritoItemConImagen
-import com.example.level_up.remote.service.RetrofitClient // IMPORTADO
-import com.example.level_up.remote.service.PedidoRequest // IMPORTADO
+import com.example.level_up.remote.service.PedidoRequest
+import com.example.level_up.remote.service.RetrofitClient
 import com.example.level_up.repository.CarritoRepository
+import com.example.level_up.repository.PedidoRemoteRepository
 import com.example.level_up.repository.PedidoRepository
-import com.example.level_up.repository.PedidoRemoteRepository // IMPORTADO
 import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion
 import kotlinx.coroutines.flow.*
@@ -31,10 +30,13 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
     private val cartRepo = CarritoRepository(db.CarritoDao())
     private val orderRepo = PedidoRepository(db.PedidoDao())
     private val userRepo = UsuarioRepository(db.UsuarioDao())
-    private val pedidoRemoteRepo = PedidoRemoteRepository(RetrofitClient.pedidoApiService) // NUEVO REPOSITORIO
+    private val pedidoRemoteRepo = PedidoRemoteRepository(RetrofitClient.pedidoApiService)
 
     private val _state = MutableStateFlow(CartState())
     val state: StateFlow<CartState> = _state.asStateFlow()
+
+    private val discountedProducts = setOf("catan", "carcassonne", "controlador inalámbrico kairox x", "auriculares gamer starforge cloud ii")
+    private val productDiscountPercentage = 10
 
     val items: StateFlow<List<CarritoItemConImagen>> = cartRepo.observarCarritoConImagenes()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -43,7 +45,7 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
         .map { list -> list.sumOf { it.precio * it.cantidad } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
-    val discountPct: StateFlow<Int> = state
+    private val userDiscountPct: StateFlow<Int> = state
         .map { s ->
             val u = s.currentUser
             when {
@@ -53,9 +55,24 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
             }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
-    val discountAmount: StateFlow<Int> = combine(subtotal, discountPct) { sub, pct ->
+    private val userDiscountAmount: StateFlow<Int> = combine(subtotal, userDiscountPct) { sub, pct ->
         (sub * pct) / 100
     }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    private val productDiscountAmount: StateFlow<Int> = items.map { list ->
+        list.sumOf { item ->
+            if (discountedProducts.contains(item.nombre.lowercase())) {
+                (item.precio * item.cantidad * productDiscountPercentage) / 100
+            } else {
+                0
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    val discountAmount: StateFlow<Int> = combine(userDiscountAmount, productDiscountAmount) { userDiscount, productDiscount ->
+        userDiscount + productDiscount
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
 
     val finalTotal: StateFlow<Int> = combine(subtotal, discountAmount) { sub, disc ->
         (sub - disc).coerceAtLeast(0)
@@ -113,6 +130,10 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val currentItems = items.value
             val currentUser = _state.value.currentUser
+            val subtotalValue = subtotal.value
+            val discountAmountValue = discountAmount.value
+            val finalAmountValue = finalTotal.value
+
 
             if (currentItems.isEmpty()) {
                 _state.value = _state.value.copy(error = "El carrito está vacío")
@@ -127,43 +148,37 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(isProcessingOrder = true)
 
             try {
-                // 1. Calcular montos
-                val subtotal = currentItems.sumOf { it.precio * it.cantidad }
-                val discountPercentage = if (currentUser.esDuoc) 20 else Validacion.obtenerPorcentajeDescuento(currentUser.nivel)
-                val discountAmount = (subtotal * discountPercentage) / 100
-                val finalAmount = subtotal - discountAmount
-
-                // 2. Crear el DTO para el backend
+                // 1. Crear el DTO para el backend
                 val orderRequest = PedidoRequest(
-                    usuarioId = currentUser.id.toLong(), // Convertir Int a Long para el backend
-                    montoTotal = subtotal,
-                    montoDescuento = discountAmount,
-                    montoFinal = finalAmount,
+                    usuarioId = currentUser.id.toLong(),
+                    montoTotal = subtotalValue,
+                    montoDescuento = discountAmountValue,
+                    montoFinal = finalAmountValue,
                     estado = "completed",
                     fechaCreacion = System.currentTimeMillis(),
                     itemsJson = currentItems.joinToString(";") { "${it.nombre}:${it.cantidad}:${it.precio}" }
                 )
 
-                // 3. LLAMAR AL SERVICIO REMOTO
+                // 2. LLAMAR AL SERVICIO REMOTO
                 val remoteOrder = pedidoRemoteRepo.crearPedido(orderRequest)
 
                 if (remoteOrder != null) {
-                    // 4. Si el pedido es exitoso en el backend, guárdalo en el historial local (Room)
+                    // 3. Guardar en Room
                     orderRepo.insertarPedido(remoteOrder)
 
-                    // 5. Actualizar estadísticas del usuario (localmente)
+                    // 4. Actualizar estadísticas del usuario (localmente)
                     val newTotalPurchases = currentUser.totalCompras + 1
-                    val pointsEarned = (finalAmount / 1000).toInt() // 1 punto por cada 1000 CLP
+                    val pointsEarned = (finalAmountValue / 1000).toInt()
                     val newPoints = currentUser.puntosLevelUp + pointsEarned
                     val newLevel = Validacion.calcularNivel(newPoints)
 
                     userRepo.actualizarTotalCompras(currentUser.id, newTotalPurchases)
                     userRepo.actualizarNivelUsuario(currentUser.id, newPoints, newLevel)
 
-                    // 6. Limpiar carrito (localmente)
+                    // 5. Limpiar carrito
                     cartRepo.limpiar()
 
-                    // 7. Actualizar estado
+                    // 6. Actualizar estado
                     _state.value = _state.value.copy(
                         isProcessingOrder = false,
                         orderSuccess = true,

@@ -31,7 +31,6 @@ import com.example.level_up.ui.theme.GreenAccent
 fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
     val items by vm.items.collectAsState()
     val subtotal by vm.subtotal.collectAsState()
-    val discountPct by vm.discountPct.collectAsState()
     val discountAmount by vm.discountAmount.collectAsState()
     val finalTotal by vm.finalTotal.collectAsState()
     val state by vm.state.collectAsState()
@@ -94,7 +93,7 @@ fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
                         CartItem(item, vm)
                     }
 
-                    item { CartTotals(subtotal, discountPct, discountAmount) }
+                    item { CartTotals(subtotal, discountAmount) }
                 }
             }
         }
@@ -220,7 +219,7 @@ fun QuantityControl(item: CarritoItemConImagen, vm: CartViewModel) {
 }
 
 @Composable
-fun CartTotals(subtotal: Int, discountPct: Int, discountAmount: Int) {
+fun CartTotals(subtotal: Int, discountAmount: Int) {
     Column(modifier = Modifier.padding(top = 24.dp, bottom = 16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Subtotal", style = MaterialTheme.typography.bodyLarge)
@@ -228,7 +227,7 @@ fun CartTotals(subtotal: Int, discountPct: Int, discountAmount: Int) {
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Descuento (${discountPct}% APLICADO)", style = MaterialTheme.typography.bodyLarge)
+            Text("Descuento", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
             Text("-$${discountAmount}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
         }
     }
