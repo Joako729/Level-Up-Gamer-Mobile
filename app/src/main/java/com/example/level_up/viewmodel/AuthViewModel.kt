@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
 import com.example.level_up.local.Entidades.UsuarioEntidad
+import com.example.level_up.remote.service.RetrofitClient // NUEVO
+import com.example.level_up.repository.UserRemoteRepository // NUEVO
 import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +29,12 @@ data class AuthState(
 )
 
 class AuthViewModel(app: Application) : AndroidViewModel(app) {
-    private val repo = UsuarioRepository(BaseDeDatosApp.obtener(app).UsuarioDao())
+    // Repositorio local (Room) - Mantenido para manejar la sesión local después del login/registro exitoso
+    private val repoLocal = UsuarioRepository(BaseDeDatosApp.obtener(app).UsuarioDao())
+
+    // NUEVO: Repositorio remoto para llamadas al backend de Spring Boot
+    private val repoRemote = UserRemoteRepository(RetrofitClient.userApiService)
+
     private val _state = MutableStateFlow(AuthState())
     val state: StateFlow<AuthState> = _state
 
@@ -72,7 +79,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         val errs = mutableMapOf<String, String>()
         val ageInt = s.age.toIntOrNull() ?: -1
 
-        // Validation
+        // Validation (Local)
         if (!Validacion.esNombreValido(s.name)) errs["name"] = "Nombre debe tener al menos 2 caracteres"
         if (!Validacion.esCorreoValido(s.email)) errs["email"] = "Email inválido"
         if (!Validacion.esAdulto(ageInt)) errs["age"] = "Debes ser mayor de 18 años"
@@ -82,9 +89,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             errs["refCode"] = "Código de referido inválido"
         }
 
-        if (repo.buscarPorCorreo(s.email) != null) {
-            errs["email"] = "Este correo ya está registrado"
-        }
+        // Eliminamos la verificación de correo local (repo.buscarPorCorreo)
 
         if (errs.isNotEmpty()) {
             _state.value = s.copy(errors = errs)
@@ -95,7 +100,9 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
 
         try {
             val referralCode = Validacion.generarCodigoReferido(s.name)
-            val user = UsuarioEntidad(
+
+            // Crea la entidad local para enviarla al backend
+            val userToSend = UsuarioEntidad(
                 nombre = s.name.trim(),
                 correo = s.email.lowercase(),
                 edad = ageInt,
@@ -104,16 +111,40 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                 codigoReferido = referralCode,
                 referidoPor = s.refCode.takeIf { it.isNotBlank() } ?: ""
             )
-            repo.insertar(user)
-            _state.value = s.copy(
-                isLoading = false,
-                isSuccess = true,
-                errors = emptyMap()
-            )
+
+            // AHORA LLAMA AL REPOSITORIO REMOTO
+            val registeredUser = repoRemote.registerUser(userToSend)
+
+            if (registeredUser != null) {
+                // Si el registro es exitoso en el backend (PostgreSQL)
+                // 1. Guarda el usuario completo en la base de datos local (Room) para cache/sesión
+                repoLocal.insertar(registeredUser)
+
+                // 2. Actualiza el estado de la sesión a iniciado en Room
+                repoLocal.actualizarEstadoSesion(registeredUser.id, true)
+
+                _state.value = s.copy(
+                    isLoading = false,
+                    isSuccess = true,
+                    currentUser = registeredUser,
+                    errors = emptyMap()
+                )
+            } else {
+                // Manejar respuesta no exitosa del servidor (4xx o 5xx) que no se maneja en el repo.
+                _state.value = s.copy(
+                    isLoading = false,
+                    errors = mapOf("general" to "Error de registro: No se pudo crear el usuario.")
+                )
+            }
         } catch (e: Exception) {
+            // Manejar errores de conexión o HTTP (409, 401, etc.)
+            val errorMessage = when {
+                e.message?.contains("correo ya está registrado") == true -> e.message!!
+                else -> "Error de conexión o servidor: ${e.message}"
+            }
             _state.value = s.copy(
                 isLoading = false,
-                errors = mapOf("general" to "Error al registrar usuario: ${e.message}")
+                errors = mapOf("general" to errorMessage)
             )
         }
     }
@@ -133,25 +164,38 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = s.copy(isLoading = true)
 
         try {
-            val user = repo.buscarPorCorreo(s.email.lowercase())
-            if (user != null && user.contrasena == s.pass) {
-                repo.actualizarEstadoSesion(user.id, true)
+            // AHORA LLAMA AL REPOSITORIO REMOTO
+            val user = repoRemote.loginUser(s.email.lowercase(), s.pass)
+
+            if (user != null) {
+                // Si el login remoto es exitoso, actualizamos la sesión local:
+                val localUser = repoLocal.buscarPorCorreo(user.correo)
+
+                // Si el usuario existe localmente (ya se registró antes), actualiza.
+                if (localUser != null) {
+                    repoLocal.actualizarEstadoSesion(localUser.id, true)
+                } else {
+                    // Si el usuario no estaba en Room, lo insertamos ahora (para que la lógica de perfil funcione).
+                    repoLocal.insertar(user.copy(sesionIniciada = true))
+                }
+
                 _state.value = s.copy(
                     isLoading = false,
                     isSuccess = true,
-                    currentUser = user,
+                    currentUser = user, // Usamos el objeto de la API
                     errors = emptyMap()
                 )
             } else {
                 _state.value = s.copy(
                     isLoading = false,
-                    errors = mapOf("general" to "Credenciales inválidas")
+                    errors = mapOf("general" to "Credenciales inválidas o error de conexión.")
                 )
             }
         } catch (e: Exception) {
+            // Manejar error de conexión/servidor
             _state.value = s.copy(
                 isLoading = false,
-                errors = mapOf("general" to "Error al iniciar sesión: ${e.message}")
+                errors = mapOf("general" to "Error al iniciar sesión: No se pudo conectar al servidor. (${e.message})")
             )
         }
     }
@@ -159,7 +203,8 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     fun logout() = viewModelScope.launch {
         val currentUser = _state.value.currentUser
         if (currentUser != null) {
-            repo.actualizarEstadoSesion(currentUser.id, false)
+            // Solo actualizamos la sesión local.
+            repoLocal.actualizarEstadoSesion(currentUser.id, false)
         }
         _state.value = AuthState()
     }
