@@ -2,6 +2,7 @@ package com.example.level_up.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -33,6 +35,7 @@ fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
     val discountAmount by vm.discountAmount.collectAsState()
     val finalTotal by vm.finalTotal.collectAsState()
     val state by vm.state.collectAsState()
+    var showPaymentOptions by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -52,7 +55,7 @@ fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
         },
         bottomBar = {
             if (items.isNotEmpty()) {
-                CartSummary(finalTotal, state.isProcessingOrder) { vm.processOrder() }
+                CartSummary(finalTotal, state.isProcessingOrder) { showPaymentOptions = true }
             }
         }
     ) { innerPadding ->
@@ -62,6 +65,16 @@ fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            if (showPaymentOptions) {
+                PaymentOptionsDialog(
+                    onDismiss = { showPaymentOptions = false },
+                    onPaymentSelected = {
+                        vm.processOrder() // For now, just process the order
+                        showPaymentOptions = false
+                    }
+                )
+            }
+
             if (state.orderSuccess) {
                 OrderSuccessMessage { navController.popBackStack() }
             }
@@ -87,6 +100,52 @@ fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
         }
     }
 }
+
+@Composable
+fun PaymentOptionsDialog(onDismiss: () -> Unit, onPaymentSelected: (String) -> Unit) {
+    var selectedOption by remember { mutableStateOf<String?>(null) }
+    val paymentOptions = listOf("Tarjeta de crédito", "PayPal", "Google Pay")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Seleccionar método de pago") },
+        text = {
+            Column {
+                paymentOptions.forEach { option ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable { selectedOption = option }
+                            .padding(vertical = 12.dp, horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (selectedOption == option),
+                            onClick = { selectedOption = option }
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(option)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (selectedOption != null) onPaymentSelected(selectedOption!!) },
+                enabled = selectedOption != null
+            ) {
+                Text("Confirmar Pago")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
 
 @Composable
 fun CartItem(item: CarritoItemConImagen, vm: CartViewModel) {
@@ -169,7 +228,7 @@ fun CartTotals(subtotal: Int, discountPct: Int, discountAmount: Int) {
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Descuento (${discountPct}%)", style = MaterialTheme.typography.bodyLarge)
+            Text("Descuento (${discountPct}% APLICADO)", style = MaterialTheme.typography.bodyLarge)
             Text("-$${discountAmount}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
         }
     }
