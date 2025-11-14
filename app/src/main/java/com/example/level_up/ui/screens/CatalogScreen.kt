@@ -2,6 +2,7 @@ package com.example.level_up.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -86,7 +87,8 @@ fun CatalogScreen(
                 items(products) { product ->
                     ProductListItem(
                         producto = product,
-                        onAddToCart = { vm.addToCart(product) }
+                        onAddToCart = { vm.addToCart(product) },
+                        onProductClick = { navController.navigate(Routes.productDetail(product.id)) }
                     )
                 }
             }
@@ -155,10 +157,13 @@ fun CategoryDropdown(
 @Composable
 fun ProductListItem(
     producto: ProductoEntidad,
-    onAddToCart: () -> Unit
+    onAddToCart: () -> Unit,
+    onProductClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onProductClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)

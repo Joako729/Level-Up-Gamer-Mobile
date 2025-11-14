@@ -131,8 +131,8 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
                     ) {
                         items(productosDestacados.take(4)) { producto ->
                             TarjetaProductoDestacado(
-                                producto = producto,
-                                onClick = { /* Navigate to product details */ }
+                                producto = producto.copy(descripcion = "Descripción de relleno para el producto destacado."),
+                                onClick = { navController.navigate(Routes.productDetail(producto.id)) }
                             )
                         }
                     }

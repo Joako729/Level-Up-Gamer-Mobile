@@ -201,10 +201,9 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun logout() = viewModelScope.launch {
-        val currentUser = _state.value.currentUser
-        if (currentUser != null) {
-            // Solo actualizamos la sesión local.
-            repoLocal.actualizarEstadoSesion(currentUser.id, false)
+        val userToLogout = repoLocal.obtenerUsuarioActual()
+        if (userToLogout != null) {
+            repoLocal.actualizarEstadoSesion(userToLogout.id, false)
         }
         _state.value = AuthState()
     }
