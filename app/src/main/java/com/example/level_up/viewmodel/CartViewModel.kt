@@ -8,8 +8,11 @@ import com.example.level_up.local.Entidades.CarritoEntidad
 import com.example.level_up.local.Entidades.PedidoEntidad
 import com.example.level_up.local.Entidades.UsuarioEntidad
 import com.example.level_up.local.model.CarritoItemConImagen
+import com.example.level_up.remote.service.RetrofitClient // IMPORTADO
+import com.example.level_up.remote.service.PedidoRequest // IMPORTADO
 import com.example.level_up.repository.CarritoRepository
 import com.example.level_up.repository.PedidoRepository
+import com.example.level_up.repository.PedidoRemoteRepository // IMPORTADO
 import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion
 import kotlinx.coroutines.flow.*
@@ -28,6 +31,7 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
     private val cartRepo = CarritoRepository(db.CarritoDao())
     private val orderRepo = PedidoRepository(db.PedidoDao())
     private val userRepo = UsuarioRepository(db.UsuarioDao())
+    private val pedidoRemoteRepo = PedidoRemoteRepository(RetrofitClient.pedidoApiService) // NUEVO REPOSITORIO
 
     private val _state = MutableStateFlow(CartState())
     val state: StateFlow<CartState> = _state.asStateFlow()
@@ -123,38 +127,54 @@ class CartViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(isProcessingOrder = true)
 
             try {
+                // 1. Calcular montos
                 val subtotal = currentItems.sumOf { it.precio * it.cantidad }
                 val discountPercentage = if (currentUser.esDuoc) 20 else Validacion.obtenerPorcentajeDescuento(currentUser.nivel)
                 val discountAmount = (subtotal * discountPercentage) / 100
                 val finalAmount = subtotal - discountAmount
 
-                val order = PedidoEntidad(
-                    usuarioId = currentUser.id,
+                // 2. Crear el DTO para el backend
+                val orderRequest = PedidoRequest(
+                    usuarioId = currentUser.id.toLong(), // Convertir Int a Long para el backend
                     montoTotal = subtotal,
                     montoDescuento = discountAmount,
                     montoFinal = finalAmount,
                     estado = "completed",
+                    fechaCreacion = System.currentTimeMillis(),
                     itemsJson = currentItems.joinToString(";") { "${it.nombre}:${it.cantidad}:${it.precio}" }
                 )
 
-                orderRepo.insertarPedido(order)
+                // 3. LLAMAR AL SERVICIO REMOTO
+                val remoteOrder = pedidoRemoteRepo.crearPedido(orderRequest)
 
-                // Update user stats
-                val newTotalPurchases = currentUser.totalCompras + 1
-                val pointsEarned = (finalAmount / 1000).toInt() // 1 point per 1000 CLP
-                val newPoints = currentUser.puntosLevelUp + pointsEarned
-                val newLevel = Validacion.calcularNivel(newPoints)
+                if (remoteOrder != null) {
+                    // 4. Si el pedido es exitoso en el backend, guárdalo en el historial local (Room)
+                    orderRepo.insertarPedido(remoteOrder)
 
-                userRepo.actualizarTotalCompras(currentUser.id, newTotalPurchases)
-                userRepo.actualizarNivelUsuario(currentUser.id, newPoints, newLevel)
+                    // 5. Actualizar estadísticas del usuario (localmente)
+                    val newTotalPurchases = currentUser.totalCompras + 1
+                    val pointsEarned = (finalAmount / 1000).toInt() // 1 punto por cada 1000 CLP
+                    val newPoints = currentUser.puntosLevelUp + pointsEarned
+                    val newLevel = Validacion.calcularNivel(newPoints)
 
-                cartRepo.limpiar()
+                    userRepo.actualizarTotalCompras(currentUser.id, newTotalPurchases)
+                    userRepo.actualizarNivelUsuario(currentUser.id, newPoints, newLevel)
 
-                _state.value = _state.value.copy(
-                    isProcessingOrder = false,
-                    orderSuccess = true,
-                    error = null
-                )
+                    // 6. Limpiar carrito (localmente)
+                    cartRepo.limpiar()
+
+                    // 7. Actualizar estado
+                    _state.value = _state.value.copy(
+                        isProcessingOrder = false,
+                        orderSuccess = true,
+                        error = null
+                    )
+                } else {
+                    _state.value = _state.value.copy(
+                        isProcessingOrder = false,
+                        error = "Error al procesar la orden: No se pudo confirmar el pedido con el servidor."
+                    )
+                }
 
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
