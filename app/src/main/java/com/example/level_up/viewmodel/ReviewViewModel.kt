@@ -8,14 +8,17 @@ import com.example.level_up.local.Entidades.ProductoEntidad
 import com.example.level_up.local.Entidades.ReseniaEntidad
 import com.example.level_up.local.Entidades.UsuarioEntidad
 import com.example.level_up.repository.ProductoRepository
-import com.example.level_up.repository.ReseniaRepository
+// Se elimina import com.example.level_up.repository.ReseniaRepository
 import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+// Se elimina import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+// NUEVOS IMPORTS PARA CONEXIÓN REMOTA
+import com.example.level_up.remote.service.RetrofitClient
+import com.example.level_up.repository.ReseniaRemoteRepository
 
 data class ReviewState(
     val isLoading: Boolean = false,
@@ -32,9 +35,12 @@ data class ReviewState(
 class ReviewViewModel(app: Application) : AndroidViewModel(app) {
 
     private val db = BaseDeDatosApp.obtener(app)
-    private val reviewRepo = ReseniaRepository(db.ReseniaDao())
+    // Se elimina: private val reviewRepo = ReseniaRepository(db.ReseniaDao())
     private val productRepo = ProductoRepository(db.ProductoDao())
     private val userRepo = UsuarioRepository(db.UsuarioDao())
+
+    // NUEVO: Repositorio Remoto
+    private val reviewRemoteRepo = ReseniaRemoteRepository(RetrofitClient.reseniaApiService)
 
     private val _state = MutableStateFlow(ReviewState())
     val state: StateFlow<ReviewState> = _state.asStateFlow()
@@ -56,9 +62,15 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(isLoading = true)
             try {
                 val product = productRepo.obtenerPorId(productId)
-                val reviews = reviewRepo.obtenerReseniasPorProducto(productId).first()
-                val averageRating = reviewRepo.obtenerPromedioResenas(productId) ?: 0f
-                val reviewCount = reviewRepo.contarResenas(productId)
+
+                // CAMBIO 1: Obtener reseñas desde la API
+                val reviews = reviewRemoteRepo.obtenerReseniasPorProducto(productId)
+
+                // CAMBIO 2: Calcular el promedio y el conteo localmente (a partir de los datos de la API)
+                val averageRating = if (reviews.isNotEmpty()) {
+                    reviews.map { it.valoracion }.average().toFloat()
+                } else 0f
+                val reviewCount = reviews.size
 
                 _state.value = _state.value.copy(
                     product = product,
@@ -104,7 +116,7 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
 
             try {
 
-                val review = ReseniaEntidad(
+                val reviewToSend = ReseniaEntidad( // Cambiado a reviewToSend para mejor claridad
                     productoId = product.id,
                     usuarioId = user.id,
                     nombreUsuario = user.nombre,
@@ -112,20 +124,26 @@ class ReviewViewModel(app: Application) : AndroidViewModel(app) {
                     valoracion = rating
                 )
 
-                reviewRepo.insertarResena(review)
+                // CAMBIO 3: Llama al servicio remoto para guardar la reseña
+                val remoteReview = reviewRemoteRepo.crearResenia(reviewToSend)
 
-                // Actualiza promedio del producto
-                val nuevoPromedio = reviewRepo.obtenerPromedioResenas(product.id) ?: rating
-                productRepo.actualizarValoracion(product.id, nuevoPromedio)
+                if (remoteReview != null) {
+                    // CAMBIO 4: Se eliminó la lógica de actualizar promedio del producto (ya que el backend no lo hace)
 
-                // Recarga reseñas en estado
-                loadProductReviews(product.id)
+                    // Recarga reseñas en estado (obteniendo la nueva reseña desde la API)
+                    loadProductReviews(product.id)
 
-                _state.value = _state.value.copy(
-                    isSubmitting = false,
-                    submitSuccess = true,
-                    error = null
-                )
+                    _state.value = _state.value.copy(
+                        isSubmitting = false,
+                        submitSuccess = true,
+                        error = null
+                    )
+                } else {
+                    _state.value = _state.value.copy(
+                        isSubmitting = false,
+                        error = "Error al enviar reseña: No se pudo confirmar la reseña con el servidor."
+                    )
+                }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isSubmitting = false,

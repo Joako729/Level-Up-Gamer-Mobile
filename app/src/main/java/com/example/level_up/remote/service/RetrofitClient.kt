@@ -1,6 +1,6 @@
-package com.example.level_up.remote.service // Mismo paquete que el API Service
+package com.example.level_up.remote.service
 
-import retrofit2.Retrofit
+import retrofit2.Retrofit // <--- ESTA LÍNEA DEBES AÑADIR O CORREGIR
 import retrofit2.converter.gson.GsonConverterFactory
 
 // IP ESPECIAL: 10.0.2.2 es la dirección que usa el EMULADOR para acceder a tu PC (localhost)
@@ -21,8 +21,18 @@ object RetrofitClient {
         retrofit.create(UserApiService::class.java)
     }
 
-    // NUEVA LÍNEA: Servicio para Pedidos
-    val pedidoApiService: PedidoApiService by lazy { // <-- AÑADIDO
+    // Servicio para Pedidos
+    val pedidoApiService: PedidoApiService by lazy {
         retrofit.create(PedidoApiService::class.java)
+    }
+
+    // NUEVO: Servicio para Reseñas
+    val reseniaApiService: ReseniaApiService by lazy {
+        retrofit.create(ReseniaApiService::class.java)
+    }
+
+    // AÑADIDO: Servicio para Reseñas de la Aplicación
+    val appReseniaApiService: AppReseniaApiService by lazy { // <-- ¡Añade esta línea!
+        retrofit.create(AppReseniaApiService::class.java)
     }
 }

@@ -7,12 +7,15 @@ import com.example.level_up.local.BaseDeDatosApp
 import com.example.level_up.local.Entidades.AppReseniaEntidad
 import com.example.level_up.local.Entidades.PedidoEntidad
 import com.example.level_up.local.Entidades.UsuarioEntidad
-import com.example.level_up.repository.AppReseniaRepository
+import com.example.level_up.repository.AppReseniaRepository // Se mantiene el import, aunque no usaremos el método de inserción
 import com.example.level_up.repository.PedidoRepository
 import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+// NUEVOS IMPORTS PARA LA CONEXIÓN REMOTA
+import com.example.level_up.remote.service.RetrofitClient
+import com.example.level_up.repository.AppReseniaRemoteRepository
 
 data class ProfileState(
     val isLoading: Boolean = false,
@@ -29,7 +32,10 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
     private val db = BaseDeDatosApp.obtener(app)
     private val userRepo = UsuarioRepository(db.UsuarioDao())
     private val orderRepo = PedidoRepository(db.PedidoDao())
-    private val appReseniaRepo = AppReseniaRepository(db.AppReseniaDao())
+    private val appReseniaRepo = AppReseniaRepository(db.AppReseniaDao()) // Repositorio local (ya no usado para submit)
+
+    // NUEVO: Instancia del repositorio remoto para App Reviews
+    private val appReseniaRemoteRepo = AppReseniaRemoteRepository(RetrofitClient.appReseniaApiService)
 
     private val _state = MutableStateFlow(ProfileState())
     val state: StateFlow<ProfileState> = _state.asStateFlow()
@@ -81,18 +87,29 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(isSubmittingReview = true)
 
             try {
-                val review = AppReseniaEntidad(
+                val reviewToSend = AppReseniaEntidad(
                     usuarioId = user.id,
                     nombreUsuario = user.nombre,
                     valoracion = rating,
                     comentario = comment.trim()
                 )
-                appReseniaRepo.insertarResena(review)
-                _state.value = _state.value.copy(
-                    isSubmittingReview = false,
-                    reviewSubmitSuccess = true,
-                    error = null
-                )
+
+                // CAMBIO CLAVE: Llama al servicio remoto para guardar la reseña en PostgreSQL
+                val remoteReview = appReseniaRemoteRepo.crearResenia(reviewToSend)
+
+                if (remoteReview != null) {
+                    // Si el servidor confirma la recepción
+                    _state.value = _state.value.copy(
+                        isSubmittingReview = false,
+                        reviewSubmitSuccess = true,
+                        error = null
+                    )
+                } else {
+                    _state.value = _state.value.copy(
+                        isSubmittingReview = false,
+                        error = "Error al enviar la reseña: El servidor no confirmó el guardado."
+                    )
+                }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isSubmittingReview = false,
