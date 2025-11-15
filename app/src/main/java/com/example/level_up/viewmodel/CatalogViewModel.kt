@@ -1,3 +1,5 @@
+// Archivo: app/src/main/java/com/example/level_up/viewmodel/CatalogViewModel.kt
+
 package com.example.level_up.viewmodel
 
 import android.app.Application
@@ -7,10 +9,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
 import com.example.level_up.local.Entidades.CarritoEntidad
 import com.example.level_up.local.Entidades.ProductoEntidad
-import com.example.level_up.local.model.ProductoRemoto
+// CORRECCIÓN DE IMPORTS
+import com.example.level_up.remote.model.ProductoRemoto
+import com.example.level_up.remote.model.Article
 import com.example.level_up.remote.service.RetrofitClient
 import com.example.level_up.repository.CarritoRepository
 import com.example.level_up.repository.ProductoRepository
+import com.example.level_up.repository.NewsRepository // NUEVO
+// FIN DE CORRECCIÓN
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -26,7 +32,9 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = ProductoRepository(db.ProductoDao())
     private val cartRepo = CarritoRepository(db.CarritoDao())
 
-    // NUEVO: Instancia del servicio Retrofit para la API
+    // NUEVO: Repositorio de noticias
+    private val newsRepo = NewsRepository(RetrofitClient.newsApiService)
+
     private val apiService = RetrofitClient.apiService
 
     private val _state = MutableStateFlow(CatalogState())
@@ -34,6 +42,10 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
 
     // Variable interna para guardar los productos de la API (será la fuente de verdad)
     private val _productosAPI = MutableStateFlow<List<ProductoRemoto>>(emptyList())
+
+    // NUEVO: Flow para exponer los artículos de noticias
+    private val _gamingNews = MutableStateFlow<List<Article>>(emptyList())
+    val gamingNews: StateFlow<List<Article>> = _gamingNews.asStateFlow()
 
     // Mantenemos la estructura de 'products' pero ahora mapeamos desde la lista de la API
     val products = combine(
@@ -56,7 +68,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
     // FIX FINAL: Filtra los valores nulos (String?) antes de crear la lista de categorías (String)
     val categories = _productosAPI.map { list ->
         list.map { it.categoria }
-            .filterNotNull() // <--- CORRIGE EL ERROR DE LIST<STRING?>
+            .filterNotNull()
             .distinct()
     }.stateIn(
         viewModelScope,
@@ -74,13 +86,9 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
     init {
         // Ejecutamos la carga desde la API
         cargarProductosDesdeAPI()
+        cargarNoticias() // <-- Cargar noticias al iniciar
 
-        // El bloque de inicialización de productos locales ahora SOLO se usa para datos destacados
-        // o si queremos mantener el Room local sincronizado.
-        // Lo modificamos para insertar solo si la tabla está vacía y la API falló.
-        // Ahora, siempre vamos a la API primero.
         viewModelScope.launch {
-            // El repo.contar() ahora es solo para el fallback local.
             if (repo.contar() == 0) {
                 // Si la API falla, podrías inicializar con datos locales,
                 // pero por ahora, solo cargamos desde la API.
@@ -88,7 +96,14 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ELIMINAMOS LA FUNCIÓN initializeProducts() antigua ya que los datos vienen de la API
+    // NUEVA FUNCIÓN: Lógica para cargar noticias
+    private fun cargarNoticias() {
+        viewModelScope.launch {
+            val articles = newsRepo.fetchGamingNews()
+            _gamingNews.value = articles
+        }
+    }
+
 
     // NUEVA FUNCIÓN: Lógica de conexión a la API de AWS
     private fun cargarProductosDesdeAPI() {

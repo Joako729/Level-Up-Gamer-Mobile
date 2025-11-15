@@ -1,3 +1,5 @@
+// Archivo: app/src/main/java/com/example/level_up/ui/screens/HomeScreen.kt
+
 package com.example.level_up.ui.screens
 
 import androidx.annotation.DrawableRes
@@ -25,8 +27,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage // NUEVO: Para cargar imágenes por URL
 import com.example.level_up.R
 import com.example.level_up.local.Entidades.ProductoEntidad
+import com.example.level_up.remote.model.Article // NUEVO: Para los datos de la noticia
 import com.example.level_up.ui.theme.GreenAccent
 import com.example.level_up.viewmodel.AuthViewModel
 import com.example.level_up.viewmodel.CatalogViewModel
@@ -50,6 +54,7 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
 
     val estadoAuth by authViewModel.state.collectAsState()
     val productosDestacados by catalogViewModel.featuredProducts.collectAsState()
+    val newsArticles by catalogViewModel.gamingNews.collectAsState() // NUEVO: Obtenemos las noticias
 
     val acciones = listOf(
         AccionRapida("Catálogo", Icons.Default.Store, Routes.CATALOG),
@@ -115,10 +120,22 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
                 }
             }
 
-            // Gaming News
+            // Gaming News - AHORA DINÁMICO
             item {
                 SectionTitle("Noticias del Mundo Gamer")
-                GamingNewsCard(modifier = Modifier.padding(horizontal = 16.dp))
+                if (newsArticles.isNotEmpty()) {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(newsArticles) { article ->
+                            GamingNewsCard(article = article)
+                        }
+                    }
+                } else {
+                    // Muestra la tarjeta estática como fallback
+                    GamingNewsPlaceholderCard(modifier = Modifier.padding(horizontal = 16.dp))
+                }
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
@@ -289,8 +306,57 @@ fun TarjetaProductoDestacado(
     }
 }
 
+
 @Composable
-fun GamingNewsCard(modifier: Modifier = Modifier) {
+fun GamingNewsCard(article: Article, modifier: Modifier = Modifier) {
+    val uriHandler = LocalUriHandler.current
+    val url = article.url ?: "about:blank"
+
+    Card(
+        modifier = modifier
+            .width(300.dp) // Ancho fijo para las tarjetas en LazyRow
+            .clickable { uriHandler.openUri(url) },
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column {
+            // Uso de Coil para cargar la imagen desde la URL (AsyncImage)
+            AsyncImage(
+                model = article.urlToImage,
+                contentDescription = article.title,
+                modifier = Modifier
+                    .height(150.dp)
+                    .fillMaxWidth(),
+                contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.noticia1) // Fallback estático
+            )
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = article.title ?: "Noticia sin título",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = article.description ?: "Toca para leer más...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 3
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                TextButton(onClick = { uriHandler.openUri(url) }) {
+                    Text("Leer más")
+                }
+            }
+        }
+    }
+}
+
+// Antigua GamingNewsCard, renombrada para ser el placeholder/fallback estático
+@Composable
+fun GamingNewsPlaceholderCard(modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val newsUrl = "https://www.xataka.com/tag/realidad-virtual"
 
@@ -311,7 +377,7 @@ fun GamingNewsCard(modifier: Modifier = Modifier) {
             )
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "El Futuro es Ahora: La Nueva Era de la Realidad Virtual",
+                    text = "El Futuro es Ahora: La Nueva Era de la Realidad Virtual (Estático)",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )

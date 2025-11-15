@@ -1,4 +1,6 @@
-package com.example.level_up.local.model
+// Archivo: app/src/main/java/com/example/level_up/remote/model/ProductoRemoto.kt
+
+package com.example.level_up.remote.model
 
 import com.google.gson.annotations.SerializedName
 

@@ -1,13 +1,14 @@
-package com.example.level_up.remote.service // Usa un paquete lógico
+// Archivo: app/src/main/java/com/example/level_up/remote/service/ProductoApiService.kt
 
-import com.example.level_up.local.model.ProductoRemoto
+package com.example.level_up.remote.service
+
+import com.example.level_up.remote.model.ProductoRemoto // <--- ¡CAMBIADO de 'local.model' a 'remote.model'!
 import retrofit2.Response
 import retrofit2.http.GET
 
 interface ProductoApiService {
 
     // Define la petición GET al endpoint de productos
-    // Llama a: http://10.0.2.2:8080/api/productos
     @GET("api/productos")
     // Retorna una lista del modelo remoto que creaste
     suspend fun obtenerTodosLosProductos(): Response<List<ProductoRemoto>>

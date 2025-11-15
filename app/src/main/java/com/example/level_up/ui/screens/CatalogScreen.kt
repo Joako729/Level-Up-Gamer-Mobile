@@ -35,8 +35,10 @@ fun CatalogScreen(
     vm: CatalogViewModel
 ) {
     val state by vm.state.collectAsState()
-    val products by vm.products.collectAsState()
-    val categories by vm.categories.collectAsState()
+
+    // FIX: Se especifica el tipo explícitamente y se añade initial = emptyList() para ayudar a la inferencia
+    val products: List<ProductoEntidad> by vm.products.collectAsState(initial = emptyList())
+    val categories: List<String> by vm.categories.collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {

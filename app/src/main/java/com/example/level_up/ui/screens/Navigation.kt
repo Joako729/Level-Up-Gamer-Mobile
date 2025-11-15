@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.level_up.viewmodel.CatalogViewModel
+import com.example.level_up.local.Entidades.ProductoEntidad // <--- ¡IMPORTANTE: Añadir este import!
 
 object Routes {
     const val HOME = "home"
@@ -40,7 +41,10 @@ fun LevelUpNavHost(navController: NavHostController = rememberNavController()) {
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
         ) { backStackEntry ->
             val productId = backStackEntry.arguments?.getInt("productId")
-            val products by catalogViewModel.products.collectAsState()
+
+            // FIX: Se especifica el tipo explícitamente para resolver el error de inferencia
+            val products: List<ProductoEntidad> by catalogViewModel.products.collectAsState(initial = emptyList())
+
             val product = products.find { it.id == productId }
 
             ProductDetailScreen(navController, product)
