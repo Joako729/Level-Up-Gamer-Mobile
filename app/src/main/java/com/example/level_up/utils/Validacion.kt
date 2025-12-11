@@ -1,14 +1,15 @@
 package com.example.level_up.utils
 
-import android.util.Patterns
-
 object Validacion {
 
     fun esAdulto(edad: Int): Boolean = edad >= 18
 
     fun esCorreoDuoc(correo: String): Boolean = correo.lowercase().endsWith("@duocuc.cl")
 
-    fun esCorreoValido(correo: String): Boolean = Patterns.EMAIL_ADDRESS.matcher(correo).matches()
+    // Modificado para usar Regex y ser compatible con Unit Tests
+    fun esCorreoValido(correo: String): Boolean {
+        return correo.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\$"))
+    }
 
     fun esClaveValida(contrasena: String): Boolean = contrasena.length >= 6
 

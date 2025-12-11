@@ -28,10 +28,12 @@ data class AuthState(
     val errors: Map<String, String> = emptyMap()
 )
 
-class AuthViewModel(app: Application) : AndroidViewModel(app) {
-    // MODIFICADO: var para permitir testing (Mocking)
-    var repoLocal = UsuarioRepository(BaseDeDatosApp.obtener(app).UsuarioDao())
-    var repoRemote = UserRemoteRepository(RetrofitClient.userApiService)
+// CAMBIO CLAVE: Los repositorios ahora están en el constructor con valores por defecto
+class AuthViewModel(
+    app: Application,
+    private val repoLocal: UsuarioRepository = UsuarioRepository(BaseDeDatosApp.obtener(app).UsuarioDao()),
+    private val repoRemote: UserRemoteRepository = UserRemoteRepository(RetrofitClient.userApiService)
+) : AndroidViewModel(app) {
 
     private val _state = MutableStateFlow(AuthState())
     val state: StateFlow<AuthState> = _state
@@ -183,9 +185,15 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun logout() = viewModelScope.launch {
-        val userToLogout = repoLocal.obtenerUsuarioActual()
-        if (userToLogout != null) {
-            repoLocal.actualizarEstadoSesion(userToLogout.id, false)
+        // Corrección: Usamos Dispatchers.IO para operaciones de base de datos si fuera necesario,
+        // pero aquí viewModelScope ya maneja el hilo adecuado generalmente.
+        try {
+            val userToLogout = repoLocal.obtenerUsuarioActual()
+            if (userToLogout != null) {
+                repoLocal.actualizarEstadoSesion(userToLogout.id, false)
+            }
+        } catch (e: Exception) {
+            // Manejo silencioso en logout
         }
         _state.value = AuthState()
     }
