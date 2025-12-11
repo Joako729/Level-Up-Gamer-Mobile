@@ -13,9 +13,10 @@ import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+// Imports para conexión remota
 import com.example.level_up.remote.service.RetrofitClient
 import com.example.level_up.repository.AppReseniaRemoteRepository
-import com.example.level_up.repository.UserRemoteRepository // Importante
+import com.example.level_up.repository.UserRemoteRepository
 
 data class ProfileState(
     val isLoading: Boolean = false,
@@ -38,7 +39,7 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
 
     // Repositorios Remotos
     private val appReseniaRemoteRepo = AppReseniaRemoteRepository(RetrofitClient.appReseniaApiService)
-    // Se instancia aquí directamente para simplificar, idealmente se inyectaría
+    // Instanciamos el repositorio remoto de usuarios aquí
     private val userRemoteRepo = UserRemoteRepository(RetrofitClient.userApiService)
 
     private val _state = MutableStateFlow(ProfileState())
@@ -98,6 +99,7 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
                     comentario = comment.trim()
                 )
 
+                // Llama al servicio remoto para guardar la reseña
                 val remoteReview = appReseniaRemoteRepo.crearResenia(reviewToSend)
 
                 if (remoteReview != null) {
@@ -125,22 +127,19 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(reviewSubmitSuccess = false)
     }
 
-    // --- FUNCIONES ACTUALIZADAS PARA EDITAR Y BORRAR CUENTA ---
+    // --- FUNCIONES ACTUALIZADAS: UPDATE Y DELETE CON BACKEND ---
 
     fun updateUser(updatedUser: UsuarioEntidad) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+            _state.value = _state.value.copy(isLoading = true) // Indicamos carga
             try {
-                // 1. Intentar actualizar en el backend
-                // Nota: Usamos updatedUser.id.toLong() asumiendo que el ID local corresponde al remoto
-                // o que el objeto ya trae el ID correcto.
+                // 1. PRIMERO intenta actualizar en el servidor (PUT)
+                // Convertimos el ID local a Long asumiendo correspondencia con el backend
                 val remoteResult = userRemoteRepo.updateUser(updatedUser.id.toLong(), updatedUser)
 
-                // 2. Si el backend responde OK (o si decides soportar modo offline, podrías manejar excepciones aquí)
+                // 2. Si el servidor responde bien, actualiza la base de datos local
                 if (remoteResult != null) {
-                    // Actualizamos la base de datos local
                     userRepo.actualizar(updatedUser)
-
                     _state.value = _state.value.copy(
                         currentUser = updatedUser,
                         isEditing = false,
@@ -150,13 +149,13 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
                 } else {
                     _state.value = _state.value.copy(
                         isLoading = false,
-                        error = "No se pudo actualizar el perfil en el servidor."
+                        error = "El servidor no pudo actualizar el perfil."
                     )
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = "Error al actualizar: ${e.message}"
+                    error = "Error de conexión al actualizar: ${e.message}"
                 )
             }
         }
@@ -168,15 +167,15 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(isLoading = true)
 
             try {
-                // 1. Llamada al endpoint DELETE del backend
+                // 1. Llamada al endpoint DELETE
                 val success = userRemoteRepo.deleteUser(user.id.toLong())
 
                 if (success) {
-                    // 2. Borrar usuario de la base de datos local
+                    // 2. Si el servidor lo borró, bórralo de la app local
                     userRepo.eliminarUsuario(user.id)
 
-                    // 3. Limpiar estado para provocar navegación al Login
-                    _state.value = ProfileState(
+                    // 3. Cerrar sesión forzosamente limpiando el estado
+                    _state.value = ProfileState( // Reinicia el estado a valores por defecto
                         currentUser = null,
                         isLoading = false,
                         isEditing = false,
@@ -185,19 +184,19 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
                 } else {
                     _state.value = _state.value.copy(
                         isLoading = false,
-                        error = "No se pudo eliminar la cuenta en el servidor"
+                        error = "No se pudo eliminar la cuenta en el servidor."
                     )
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = "Error al eliminar cuenta: ${e.message}"
+                    error = "Error al eliminar: ${e.message}"
                 )
             }
         }
     }
 
-    // ----------------------------------------------------------
+    // -----------------------------------------------------------
 
     fun toggleEditMode() {
         _state.value = _state.value.copy(isEditing = !_state.value.isEditing)
