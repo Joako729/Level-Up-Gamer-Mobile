@@ -27,10 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage // NUEVO: Para cargar imágenes por URL
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.level_up.R
 import com.example.level_up.local.Entidades.ProductoEntidad
-import com.example.level_up.remote.model.Article // NUEVO: Para los datos de la noticia
+import com.example.level_up.remote.model.Article
 import com.example.level_up.ui.theme.GreenAccent
 import com.example.level_up.viewmodel.AuthViewModel
 import com.example.level_up.viewmodel.CatalogViewModel
@@ -54,7 +55,7 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
 
     val estadoAuth by authViewModel.state.collectAsState()
     val productosDestacados by catalogViewModel.featuredProducts.collectAsState()
-    val newsArticles by catalogViewModel.gamingNews.collectAsState() // NUEVO: Obtenemos las noticias
+    val newsArticles by catalogViewModel.gamingNews.collectAsState()
 
     val acciones = listOf(
         AccionRapida("Catálogo", Icons.Default.Store, Routes.CATALOG),
@@ -62,10 +63,12 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
         AccionRapida("Mi Perfil", Icons.Default.Person, Routes.PROFILE)
     )
 
+    // AQUI ESTA EL CAMBIO SOLICITADO:
+    // Se cambió el título a "Computación" y el filtro también a "Computación"
     val categoryNavItems = listOf(
         CategoryNavigationItem("Accesorios", R.drawable.accesorios, "Accesorios"),
         CategoryNavigationItem("Consolas", R.drawable.consolas, "Consolas"),
-        CategoryNavigationItem("PCs Gamers", R.drawable.pcs, "Computadores Gamers")
+        CategoryNavigationItem("Computación", R.drawable.pcgamer, "Computación")
     )
 
     Scaffold(
@@ -120,7 +123,7 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
                 }
             }
 
-            // Gaming News - AHORA DINÁMICO
+            // Gaming News - DINÁMICO
             item {
                 SectionTitle("Noticias del Mundo Gamer")
                 if (newsArticles.isNotEmpty()) {
@@ -133,7 +136,6 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
                         }
                     }
                 } else {
-                    // Muestra la tarjeta estática como fallback
                     GamingNewsPlaceholderCard(modifier = Modifier.padding(horizontal = 16.dp))
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -149,7 +151,7 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
                     ) {
                         items(productosDestacados.take(4)) { producto ->
                             TarjetaProductoDestacado(
-                                producto = producto.copy(descripcion = "Descripción de relleno para el producto destacado."),
+                                producto = producto,
                                 onClick = { navController.navigate(Routes.productDetail(producto.id)) }
                             )
                         }
@@ -247,39 +249,35 @@ fun TarjetaProductoDestacado(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             val context = LocalContext.current
-            val imageResId = remember(producto.urlImagen) {
-                if (producto.urlImagen.isNotBlank()) {
-                    context.resources.getIdentifier(producto.urlImagen, "drawable", context.packageName)
+
+            // Lógica híbrida para productos destacados: detecta URL o local
+            val model = remember(producto.urlImagen) {
+                if (producto.urlImagen.startsWith("http")) {
+                    producto.urlImagen
                 } else {
-                    0
+                    val id = context.resources.getIdentifier(
+                        producto.urlImagen,
+                        "drawable",
+                        context.packageName
+                    )
+                    if (id != 0) id else R.drawable.ic_launcher_foreground
                 }
             }
 
-            if (imageResId != 0) {
-                Image(
-                    painter = painterResource(id = imageResId),
-                    contentDescription = producto.nombre,
-                    modifier = Modifier
-                        .height(100.dp)
-                        .fillMaxWidth(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .height(100.dp)
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Image,
-                        contentDescription = "Product Image Placeholder",
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
-            }
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(model)
+                    .crossfade(true)
+                    .error(R.drawable.ic_launcher_foreground)
+                    .build(),
+                contentDescription = producto.nombre,
+                modifier = Modifier
+                    .height(100.dp)
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)),
+                contentScale = ContentScale.Crop
+            )
+
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = producto.nombre,
@@ -306,7 +304,6 @@ fun TarjetaProductoDestacado(
     }
 }
 
-
 @Composable
 fun GamingNewsCard(article: Article, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
@@ -314,14 +311,13 @@ fun GamingNewsCard(article: Article, modifier: Modifier = Modifier) {
 
     Card(
         modifier = modifier
-            .width(300.dp) // Ancho fijo para las tarjetas en LazyRow
+            .width(300.dp)
             .clickable { uriHandler.openUri(url) },
         shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            // Uso de Coil para cargar la imagen desde la URL (AsyncImage)
             AsyncImage(
                 model = article.urlToImage,
                 contentDescription = article.title,
@@ -329,7 +325,7 @@ fun GamingNewsCard(article: Article, modifier: Modifier = Modifier) {
                     .height(150.dp)
                     .fillMaxWidth(),
                 contentScale = ContentScale.Crop,
-                error = painterResource(R.drawable.noticia1) // Fallback estático
+                error = painterResource(R.drawable.noticia1)
             )
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -354,7 +350,6 @@ fun GamingNewsCard(article: Article, modifier: Modifier = Modifier) {
     }
 }
 
-// Antigua GamingNewsCard, renombrada para ser el placeholder/fallback estático
 @Composable
 fun GamingNewsPlaceholderCard(modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
@@ -377,7 +372,7 @@ fun GamingNewsPlaceholderCard(modifier: Modifier = Modifier) {
             )
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "El Futuro es Ahora: La Nueva Era de la Realidad Virtual (Estático)",
+                    text = "El Futuro es Ahora: La Nueva Era de la Realidad Virtual",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -410,6 +405,7 @@ fun CategoryNavigationCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
+            // Nota: Aquí usamos painterResource porque los íconos de categoría siempre son locales
             Image(
                 painter = painterResource(id = item.imageRes),
                 contentDescription = item.title,

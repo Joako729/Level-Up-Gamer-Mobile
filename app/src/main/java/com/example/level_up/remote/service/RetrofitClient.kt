@@ -1,53 +1,61 @@
-// Archivo: app/src/main/java/com/example/level_up/remote/service/RetrofitClient.kt
-
 package com.example.level_up.remote.service
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-// IP ESPECIAL: 10.0.2.2 es la dirección que usa el EMULADOR para acceder a tu PC (localhost)
-private const val BASE_URL_LOCAL = "http://10.0.2.2:8080/"
-private const val BASE_URL_NEWSAPI = "https://newsapi.org/v2/" // NUEVA URL BASE para noticias
-
 object RetrofitClient {
 
-    // Instancia para el backend local (existente)
-    private val retrofitLocal = Retrofit.Builder()
-        .baseUrl(BASE_URL_LOCAL)
+    // IMPORTANTE: Configuración de la dirección de tu Backend
+    // -------------------------------------------------------
+
+    // OPCIÓN A: Si usas el EMULADOR de Android Studio
+    private const val BASE_URL = "http://10.0.2.2:8080/"
+
+    // OPCIÓN B: Si usas tu CELULAR FÍSICO (USB/WiFi)
+    // Debes poner la IP de tu computador (ej: 192.168.1.15)
+    // private const val BASE_URL = "http://TU_IP_AQUI:8080/"
+
+    // -------------------------------------------------------
+
+    // URL de API de noticias (Externa)
+    private const val BASE_URL_NEWSAPI = "https://newsapi.org/v2/"
+
+    // Cliente para tu Backend (Spring Boot)
+    private val retrofitBackend = Retrofit.Builder()
+        .baseUrl(BASE_URL)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    // Instancia para la API de Noticias (NUEVA INSTANCIA)
+    // Cliente para Noticias
     private val retrofitNewsApi = Retrofit.Builder()
         .baseUrl(BASE_URL_NEWSAPI)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
+    // --- Servicios conectados a tu Backend ---
+
     val apiService: ProductoApiService by lazy {
-        retrofitLocal.create(ProductoApiService::class.java)
+        retrofitBackend.create(ProductoApiService::class.java)
     }
 
-    // Servicio para Usuarios/Auth
     val userApiService: UserApiService by lazy {
-        retrofitLocal.create(UserApiService::class.java)
+        retrofitBackend.create(UserApiService::class.java)
     }
 
-    // Servicio para Pedidos
     val pedidoApiService: PedidoApiService by lazy {
-        retrofitLocal.create(PedidoApiService::class.java)
+        retrofitBackend.create(PedidoApiService::class.java)
     }
 
-    // Servicio para Reseñas de Producto
     val reseniaApiService: ReseniaApiService by lazy {
-        retrofitLocal.create(ReseniaApiService::class.java)
+        retrofitBackend.create(ReseniaApiService::class.java)
     }
 
-    // Servicio para Reseñas de la Aplicación
     val appReseniaApiService: AppReseniaApiService by lazy {
-        retrofitLocal.create(AppReseniaApiService::class.java)
+        retrofitBackend.create(AppReseniaApiService::class.java)
     }
 
-    // AÑADIDO: Servicio para Noticias
+    // --- Servicios Externos ---
+
     val newsApiService: NewsApiService by lazy {
         retrofitNewsApi.create(NewsApiService::class.java)
     }

@@ -1,6 +1,5 @@
 package com.example.level_up.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,7 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,11 +17,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.level_up.R
 import com.example.level_up.local.Entidades.ProductoEntidad
 import com.example.level_up.viewmodel.CatalogViewModel
 import com.example.level_up.ui.theme.GreenAccent
@@ -36,7 +35,7 @@ fun CatalogScreen(
 ) {
     val state by vm.state.collectAsState()
 
-    // FIX: Se especifica el tipo explícitamente y se añade initial = emptyList() para ayudar a la inferencia
+    // Se especifica el tipo explícitamente y se añade initial = emptyList()
     val products: List<ProductoEntidad> by vm.products.collectAsState(initial = emptyList())
     val categories: List<String> by vm.categories.collectAsState(initial = emptyList())
 
@@ -145,7 +144,7 @@ fun CategoryDropdown(
         ) {
             categories.forEach { category ->
                 DropdownMenuItem(
-                    text = { Text(category, color = Color.Black) }, // FIX: Forzar el color del texto a negro
+                    text = { Text(category, color = Color.Black) },
                     onClick = {
                         onCategorySelected(category)
                         expanded = false
@@ -175,38 +174,35 @@ fun ProductListItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val context = LocalContext.current
-            val imageResId = if (producto.urlImagen.isNotBlank()) {
-                context.resources.getIdentifier(producto.urlImagen, "drawable", context.packageName)
-            } else {
-                0
-            }
 
-            if (imageResId != 0) {
-                Image(
-                    painter = painterResource(id = imageResId),
-                    contentDescription = "Imagen de ${producto.nombre}",
-                    modifier = Modifier
-                        .size(90.dp)
-                        .clip(MaterialTheme.shapes.medium),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                // Fallback a placeholder
-                Box(
-                    modifier = Modifier
-                        .size(90.dp)
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Image,
-                        contentDescription = "Imagen de Producto no disponible",
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            // Lógica híbrida: Detecta si es URL (http) o recurso local (drawable)
+            val model = remember(producto.urlImagen) {
+                if (producto.urlImagen.startsWith("http")) {
+                    producto.urlImagen
+                } else {
+                    // Intenta buscar en drawables locales
+                    val id = context.resources.getIdentifier(
+                        producto.urlImagen,
+                        "drawable",
+                        context.packageName
                     )
+                    if (id != 0) id else R.drawable.ic_launcher_foreground // Fallback si no encuentra el recurso
                 }
             }
+
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(model)
+                    .crossfade(true)
+                    .error(R.drawable.ic_launcher_foreground) // Imagen por defecto si falla la carga
+                    .build(),
+                contentDescription = "Imagen de ${producto.nombre}",
+                modifier = Modifier
+                    .size(90.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentScale = ContentScale.Crop
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
