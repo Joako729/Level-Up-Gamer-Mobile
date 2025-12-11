@@ -9,14 +9,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.level_up.local.BaseDeDatosApp
 import com.example.level_up.local.Entidades.CarritoEntidad
 import com.example.level_up.local.Entidades.ProductoEntidad
-// CORRECCIÓN DE IMPORTS
 import com.example.level_up.remote.model.ProductoRemoto
 import com.example.level_up.remote.model.Article
 import com.example.level_up.remote.service.RetrofitClient
 import com.example.level_up.repository.CarritoRepository
 import com.example.level_up.repository.ProductoRepository
-import com.example.level_up.repository.NewsRepository // NUEVO
-// FIN DE CORRECCIÓN
+import com.example.level_up.repository.NewsRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -32,30 +30,23 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = ProductoRepository(db.ProductoDao())
     private val cartRepo = CarritoRepository(db.CarritoDao())
 
-    // NUEVO: Repositorio de noticias
     private val newsRepo = NewsRepository(RetrofitClient.newsApiService)
-
     private val apiService = RetrofitClient.apiService
 
     private val _state = MutableStateFlow(CatalogState())
     val state: StateFlow<CatalogState> = _state.asStateFlow()
 
-    // Variable interna para guardar los productos de la API (será la fuente de verdad)
     private val _productosAPI = MutableStateFlow<List<ProductoRemoto>>(emptyList())
 
-    // NUEVO: Flow para exponer los artículos de noticias
     private val _gamingNews = MutableStateFlow<List<Article>>(emptyList())
     val gamingNews: StateFlow<List<Article>> = _gamingNews.asStateFlow()
 
-    // Mantenemos la estructura de 'products' pero ahora mapeamos desde la lista de la API
     val products = combine(
-        _productosAPI, // Observamos la lista que viene de la API
+        _productosAPI,
         _state
     ) { remoteProducts, state ->
-        // Mapeamos los productos remotos a la Entidad local si es necesario (para compatibilidad de código antiguo)
         val products = remoteProducts.map { it.toProductoEntidad() }
 
-        // Aplicamos el filtro de búsqueda y categoría
         products.filter { product ->
             val matchesCategory = state.selectedCategory == "Todas" || product.categoria == state.selectedCategory
             val matchesSearch = state.searchQuery.isBlank() ||
@@ -65,7 +56,6 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    // FIX FINAL: Filtra los valores nulos (String?) antes de crear la lista de categorías (String)
     val categories = _productosAPI.map { list ->
         list.map { it.categoria }
             .filterNotNull()
@@ -76,7 +66,6 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
         emptyList()
     )
 
-    // ESTA LÍNEA SE MANTIENE PARA COMPATIBILIDAD CON LA LÓGICA EXISTENTE DE HOME SCREEN
     val featuredProducts = repo.obtenerDestacados().stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
@@ -84,19 +73,16 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
     )
 
     init {
-        // Ejecutamos la carga desde la API
         cargarProductosDesdeAPI()
-        cargarNoticias() // <-- Cargar noticias al iniciar
+        cargarNoticias()
 
         viewModelScope.launch {
             if (repo.contar() == 0) {
-                // Si la API falla, podrías inicializar con datos locales,
-                // pero por ahora, solo cargamos desde la API.
+                // Base de datos vacía
             }
         }
     }
 
-    // NUEVA FUNCIÓN: Lógica para cargar noticias
     private fun cargarNoticias() {
         viewModelScope.launch {
             val articles = newsRepo.fetchGamingNews()
@@ -104,8 +90,7 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-
-    // NUEVA FUNCIÓN: Lógica de conexión a la API de AWS
+    // --- MODIFICADO: Borra datos antiguos antes de insertar nuevos ---
     private fun cargarProductosDesdeAPI() {
         _state.value = _state.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
@@ -114,15 +99,20 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                 if (response.isSuccessful) {
                     val productosRemotos = response.body() ?: emptyList()
 
-                    // Actualizamos la lista de la API
+                    // 1. Actualizamos la lista en memoria (para el catálogo)
                     _productosAPI.value = productosRemotos
 
-                    // OPCIONAL: Insertamos los productos remotos en la BD local (Room) para usarlos en Carrito/Detalles/etc.
+                    // 2. Actualizamos la Base de Datos Local (para el Home/Destacados)
                     val productosEntidad = productosRemotos.map { it.toProductoEntidad() }
+
+                    // IMPORTANTE: Borramos lo viejo para eliminar productos fantasma
+                    repo.borrarTodos()
+
+                    // Insertamos lo nuevo
                     repo.insertarTodos(*productosEntidad.toTypedArray())
 
                     _state.value = _state.value.copy(isLoading = false)
-                    Log.d("API_PRODUCTOS", "Cargados ${productosRemotos.size} productos desde AWS.")
+                    Log.d("API_PRODUCTOS", "Sincronización completa: ${productosRemotos.size} productos.")
 
                 } else {
                     _state.value = _state.value.copy(
@@ -131,24 +121,22 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 }
             } catch (e: Exception) {
-                // Manejar error de conexión (el servidor Spring Boot no está corriendo)
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = "No se pudo conectar al servidor. Asegúrate de que Spring Boot esté activo. (${e.message})"
+                    error = "No se pudo conectar al servidor. (${e.message})"
                 )
                 Log.e("API_PRODUCTOS", "Conexión fallida: ${e.message}")
             }
         }
     }
 
-    // FUNCIÓN DE CONVERSIÓN: Robusta para todos los campos nulos
     private fun ProductoRemoto.toProductoEntidad(): ProductoEntidad {
         return ProductoEntidad(
             id = this.id.toInt(),
             codigo = this.codigo ?: "N/A",
             categoria = this.categoria ?: "General",
             nombre = this.nombre ?: "Producto Desconocido",
-            precio = this.precio?.toInt() ?: 0, // FIX: Lee Double y convierte a Int de forma segura
+            precio = this.precio?.toInt() ?: 0,
             stock = this.stock ?: 0,
             valoracion = this.valoracion ?: 0f,
             descripcion = this.descripcion ?: "",
@@ -169,7 +157,6 @@ class CatalogViewModel(app: Application) : AndroidViewModel(app) {
     fun addToCart(product: ProductoEntidad) {
         viewModelScope.launch {
             try {
-                // Lógica de carrito...
                 val existingItem = cartRepo.obtenerItemPorProductoId(product.id)
                 if (existingItem != null) {
                     cartRepo.actualizarCantidad(product.id, existingItem.cantidad + 1)

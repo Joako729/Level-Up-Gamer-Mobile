@@ -39,6 +39,10 @@ interface ProductoDao {
     @Delete
     suspend fun eliminar(producto: ProductoEntidad)
 
+    // --- NUEVO: Función para limpiar la base de datos ---
+    @Query("DELETE FROM Producto")
+    suspend fun borrarTodos()
+
     // Utilitarias
     @Query("SELECT COUNT(*) FROM Producto")
     suspend fun contar(): Int

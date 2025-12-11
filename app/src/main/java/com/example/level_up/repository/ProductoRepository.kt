@@ -24,6 +24,9 @@ class ProductoRepository(private val dao: ProductoDao) {
 
     suspend fun eliminar(producto: ProductoEntidad) = dao.eliminar(producto)
 
+    // --- NUEVO: Conexión con el DAO ---
+    suspend fun borrarTodos() = dao.borrarTodos()
+
     suspend fun contar(): Int = dao.contar()
 
     suspend fun actualizarValoracion(idProducto: Int, valoracion: Float) = dao.actualizarValoracion(idProducto, valoracion)
