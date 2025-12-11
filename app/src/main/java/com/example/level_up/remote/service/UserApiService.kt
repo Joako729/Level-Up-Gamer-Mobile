@@ -3,9 +3,11 @@ package com.example.level_up.remote.service
 import com.example.level_up.local.Entidades.UsuarioEntidad
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE // Importante
 import retrofit2.http.POST
+import retrofit2.http.PUT    // Importante
+import retrofit2.http.Path   // Importante
 
-// 1. DTO NECESARIO PARA EL LOGIN: Retrofit lo usa para crear el JSON del Body
 data class LoginRequest(
     val correo: String,
     val contrasena: String
@@ -13,11 +15,17 @@ data class LoginRequest(
 
 interface UserApiService {
 
-    // Endpoint para Registro
     @POST("api/usuarios/registro")
     suspend fun register(@Body user: UsuarioEntidad): Response<UsuarioEntidad>
 
-    // Endpoint para Login: Ahora usa el DTO LoginRequest
     @POST("api/usuarios/login")
     suspend fun login(@Body request: LoginRequest): Response<UsuarioEntidad>
+
+    // --- NUEVOS ENDPOINTS ---
+
+    @DELETE("api/usuarios/{id}")
+    suspend fun deleteUser(@Path("id") id: Long): Response<Void>
+
+    @PUT("api/usuarios/{id}")
+    suspend fun updateUser(@Path("id") id: Long, @Body user: UsuarioEntidad): Response<UsuarioEntidad>
 }
