@@ -7,15 +7,15 @@ import com.example.level_up.local.BaseDeDatosApp
 import com.example.level_up.local.Entidades.AppReseniaEntidad
 import com.example.level_up.local.Entidades.PedidoEntidad
 import com.example.level_up.local.Entidades.UsuarioEntidad
-import com.example.level_up.repository.AppReseniaRepository // Se mantiene el import, aunque no usaremos el método de inserción
+import com.example.level_up.repository.AppReseniaRepository
 import com.example.level_up.repository.PedidoRepository
 import com.example.level_up.repository.UsuarioRepository
 import com.example.level_up.utils.Validacion
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-// NUEVOS IMPORTS PARA LA CONEXIÓN REMOTA
 import com.example.level_up.remote.service.RetrofitClient
 import com.example.level_up.repository.AppReseniaRemoteRepository
+import com.example.level_up.repository.UserRemoteRepository // Importante
 
 data class ProfileState(
     val isLoading: Boolean = false,
@@ -30,12 +30,16 @@ data class ProfileState(
 
 class ProfileViewModel(app: Application) : AndroidViewModel(app) {
     private val db = BaseDeDatosApp.obtener(app)
+
+    // Repositorios Locales
     private val userRepo = UsuarioRepository(db.UsuarioDao())
     private val orderRepo = PedidoRepository(db.PedidoDao())
-    private val appReseniaRepo = AppReseniaRepository(db.AppReseniaDao()) // Repositorio local (ya no usado para submit)
+    private val appReseniaRepo = AppReseniaRepository(db.AppReseniaDao())
 
-    // NUEVO: Instancia del repositorio remoto para App Reviews
+    // Repositorios Remotos
     private val appReseniaRemoteRepo = AppReseniaRemoteRepository(RetrofitClient.appReseniaApiService)
+    // Se instancia aquí directamente para simplificar, idealmente se inyectaría
+    private val userRemoteRepo = UserRemoteRepository(RetrofitClient.userApiService)
 
     private val _state = MutableStateFlow(ProfileState())
     val state: StateFlow<ProfileState> = _state.asStateFlow()
@@ -94,11 +98,9 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
                     comentario = comment.trim()
                 )
 
-                // CAMBIO CLAVE: Llama al servicio remoto para guardar la reseña en PostgreSQL
                 val remoteReview = appReseniaRemoteRepo.crearResenia(reviewToSend)
 
                 if (remoteReview != null) {
-                    // Si el servidor confirma la recepción
                     _state.value = _state.value.copy(
                         isSubmittingReview = false,
                         reviewSubmitSuccess = true,
@@ -123,22 +125,79 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(reviewSubmitSuccess = false)
     }
 
+    // --- FUNCIONES ACTUALIZADAS PARA EDITAR Y BORRAR CUENTA ---
+
     fun updateUser(updatedUser: UsuarioEntidad) {
         viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true)
             try {
-                userRepo.actualizar(updatedUser)
-                _state.value = _state.value.copy(
-                    currentUser = updatedUser,
-                    isEditing = false,
-                    error = null
-                )
+                // 1. Intentar actualizar en el backend
+                // Nota: Usamos updatedUser.id.toLong() asumiendo que el ID local corresponde al remoto
+                // o que el objeto ya trae el ID correcto.
+                val remoteResult = userRemoteRepo.updateUser(updatedUser.id.toLong(), updatedUser)
+
+                // 2. Si el backend responde OK (o si decides soportar modo offline, podrías manejar excepciones aquí)
+                if (remoteResult != null) {
+                    // Actualizamos la base de datos local
+                    userRepo.actualizar(updatedUser)
+
+                    _state.value = _state.value.copy(
+                        currentUser = updatedUser,
+                        isEditing = false,
+                        isLoading = false,
+                        error = null
+                    )
+                } else {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        error = "No se pudo actualizar el perfil en el servidor."
+                    )
+                }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
-                    error = "Error al actualizar el perfil: ${e.message}"
+                    isLoading = false,
+                    error = "Error al actualizar: ${e.message}"
                 )
             }
         }
     }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            val user = _state.value.currentUser ?: return@launch
+            _state.value = _state.value.copy(isLoading = true)
+
+            try {
+                // 1. Llamada al endpoint DELETE del backend
+                val success = userRemoteRepo.deleteUser(user.id.toLong())
+
+                if (success) {
+                    // 2. Borrar usuario de la base de datos local
+                    userRepo.eliminarUsuario(user.id)
+
+                    // 3. Limpiar estado para provocar navegación al Login
+                    _state.value = ProfileState(
+                        currentUser = null,
+                        isLoading = false,
+                        isEditing = false,
+                        error = null
+                    )
+                } else {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        error = "No se pudo eliminar la cuenta en el servidor"
+                    )
+                }
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = "Error al eliminar cuenta: ${e.message}"
+                )
+            }
+        }
+    }
+
+    // ----------------------------------------------------------
 
     fun toggleEditMode() {
         _state.value = _state.value.copy(isEditing = !_state.value.isEditing)
