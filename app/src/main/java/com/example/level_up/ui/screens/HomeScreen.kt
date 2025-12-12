@@ -1,9 +1,5 @@
-// Archivo: app/src/main/java/com/example/level_up/ui/screens/HomeScreen.kt
-
 package com.example.level_up.ui.screens
 
-import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -42,9 +37,10 @@ data class AccionRapida(
     val ruta: String
 )
 
+// CAMBIO 1: Ahora recibe imageUrl (String) en lugar de imageRes (Int)
 data class CategoryNavigationItem(
     val title: String,
-    @DrawableRes val imageRes: Int,
+    val imageUrl: String,
     val categoryFilter: String
 )
 
@@ -63,12 +59,24 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
         AccionRapida("Mi Perfil", Icons.Default.Person, Routes.PROFILE)
     )
 
-    // AQUI ESTA EL CAMBIO SOLICITADO:
-    // Se cambió el título a "Computación" y el filtro también a "Computación"
+    // CAMBIO 2: Lista actualizada con los links RAW de GitHub
+    // Asegúrate de que los nombres de archivo coincidan con lo que subiste
     val categoryNavItems = listOf(
-        CategoryNavigationItem("Accesorios", R.drawable.ic_launcher_foreground, "Accesorios"),
-        CategoryNavigationItem("Consolas", R.drawable.ic_launcher_foreground, "Consolas"),
-        CategoryNavigationItem("Computación", R.drawable.ic_launcher_foreground, "Computación")
+        CategoryNavigationItem(
+            "Accesorios",
+            "https://raw.githubusercontent.com/Joako729/Level-Up-Gamer-Mobile/main/accesorios.png",
+            "Accesorios"
+        ),
+        CategoryNavigationItem(
+            "Consolas",
+            "https://raw.githubusercontent.com/Joako729/Level-Up-Gamer-Mobile/main/consolas.png",
+            "Consolas"
+        ),
+        CategoryNavigationItem(
+            "PC Gamer",
+            "https://raw.githubusercontent.com/Joako729/Level-Up-Gamer-Mobile/main/pcs.png",
+            "Computación"
+        )
     )
 
     Scaffold(
@@ -256,7 +264,7 @@ fun TarjetaProductoDestacado(
                     producto.urlImagen
                 } else {
                     val id = context.resources.getIdentifier(
-                        producto.urlImagen,
+                        producto.urlImagen.substringBeforeLast("."), // Corrección de extensión
                         "drawable",
                         context.packageName
                     )
@@ -355,6 +363,9 @@ fun GamingNewsPlaceholderCard(modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val newsUrl = "https://www.xataka.com/tag/realidad-virtual"
 
+    // CAMBIO 3: Link de la noticia 1 (asegúrate de haber subido noticia1.png a GitHub)
+    val noticiaImageUrl = "https://raw.githubusercontent.com/Joako729/Level-Up-Gamer-Mobile/main/noticia1.png"
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -362,13 +373,15 @@ fun GamingNewsPlaceholderCard(modifier: Modifier = Modifier) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+            // CAMBIO 4: Usamos AsyncImage para cargar desde internet
+            AsyncImage(
+                model = noticiaImageUrl,
                 contentDescription = "Noticia sobre Realidad Virtual",
                 modifier = Modifier
                     .height(150.dp)
                     .fillMaxWidth(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = painterResource(id = R.drawable.ic_launcher_foreground)
             )
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -405,14 +418,16 @@ fun CategoryNavigationCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            // Nota: Aquí usamos painterResource porque los íconos de categoría siempre son locales
-            Image(
-                painter = painterResource(id = item.imageRes),
+            // CAMBIO 5: Usamos AsyncImage en lugar de Image
+            AsyncImage(
+                model = item.imageUrl,
                 contentDescription = item.title,
                 modifier = Modifier
                     .height(80.dp)
                     .fillMaxWidth(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                // Si falla, muestra el ícono por defecto
+                error = painterResource(id = R.drawable.ic_launcher_foreground)
             )
             Box(modifier = Modifier.padding(12.dp)) {
                 Text(
