@@ -1,6 +1,5 @@
 package com.example.level_up.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,11 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+// IMPORTACIONES DE COIL (Para las fotos)
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.level_up.R
 import com.example.level_up.local.model.CarritoItemConImagen
 import com.example.level_up.viewmodel.CartViewModel
 import com.example.level_up.ui.theme.GreenAccent
@@ -29,6 +31,7 @@ import com.example.level_up.ui.theme.GreenAccent
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
+    // Recolectamos los estados directamente del ViewModel
     val items by vm.items.collectAsState()
     val subtotal by vm.subtotal.collectAsState()
     val discountAmount by vm.discountAmount.collectAsState()
@@ -64,21 +67,31 @@ fun CartScreen(navController: NavController, vm: CartViewModel = viewModel()) {
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            // Diálogo de pago
             if (showPaymentOptions) {
                 PaymentOptionsDialog(
                     onDismiss = { showPaymentOptions = false },
                     onPaymentSelected = {
-                        vm.processOrder() // For now, just process the order
+                        vm.processOrder() // Llamada corregida a tu método processOrder
                         showPaymentOptions = false
                     }
                 )
             }
 
+            // Mensajes de éxito o error
             if (state.orderSuccess) {
-                OrderSuccessMessage { navController.popBackStack() }
+                OrderSuccessMessage {
+                    vm.clearOrderSuccess() // Limpiar estado para evitar bucles
+                    navController.popBackStack()
+                }
             }
             if (state.error != null) {
                 ErrorAlert(message = state.error!!)
+                // Opcional: limpiar error después de mostrarlo
+                LaunchedEffect(state.error) {
+                    kotlinx.coroutines.delay(3000)
+                    vm.clearError()
+                }
             }
 
             if (items.isEmpty()) {
@@ -145,7 +158,6 @@ fun PaymentOptionsDialog(onDismiss: () -> Unit, onPaymentSelected: (String) -> U
     )
 }
 
-
 @Composable
 fun CartItem(item: CarritoItemConImagen, vm: CartViewModel) {
     Card(
@@ -156,33 +168,33 @@ fun CartItem(item: CarritoItemConImagen, vm: CartViewModel) {
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             val context = LocalContext.current
-            val imageResId = remember(item.urlImagen) {
-                if (item.urlImagen.isNotBlank()) {
-                    context.resources.getIdentifier(item.urlImagen, "drawable", context.packageName)
+
+            // --- CORRECCIÓN CLAVE: Lógica para cargar imagen de nube o local ---
+            val model = remember(item.urlImagen) {
+                if (item.urlImagen.startsWith("http")) {
+                    item.urlImagen // Es URL de internet (GitHub)
                 } else {
-                    0
+                    // Es local, quitamos extensión y buscamos ID
+                    val nombreSinExt = item.urlImagen.substringBeforeLast(".")
+                    val id = context.resources.getIdentifier(nombreSinExt, "drawable", context.packageName)
+                    if (id != 0) id else R.drawable.ic_launcher_foreground
                 }
             }
 
-            if (imageResId != 0) {
-                Image(
-                    painter = painterResource(id = imageResId),
-                    contentDescription = item.nombre,
-                    modifier = Modifier
-                        .size(80.dp)
-                        .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.medium),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.medium),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Image, contentDescription = "Product Image Placeholder", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                }
-            }
+            // Usamos AsyncImage de Coil en lugar de Image
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(model)
+                    .crossfade(true)
+                    .error(R.drawable.ic_launcher_foreground)
+                    .build(),
+                contentDescription = item.nombre,
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.medium),
+                contentScale = ContentScale.Crop
+            )
+            // ------------------------------------------------------------------
 
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -192,6 +204,8 @@ fun CartItem(item: CarritoItemConImagen, vm: CartViewModel) {
                 Spacer(Modifier.height(8.dp))
                 QuantityControl(item, vm)
             }
+
+            // Botón eliminar usando el método correcto: removeById
             IconButton(onClick = { vm.removeById(item.id) }, modifier = Modifier.align(Alignment.Top)) {
                 Icon(Icons.Default.Close, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }

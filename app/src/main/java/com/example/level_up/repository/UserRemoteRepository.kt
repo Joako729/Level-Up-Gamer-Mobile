@@ -32,11 +32,18 @@ class UserRemoteRepository(private val apiService: UserApiService) {
         }
     }
 
-    // --- NUEVAS FUNCIONES PARA EL CRUD ---
+
+    suspend fun getUser(id: Long): UsuarioEntidad? {
+        return try {
+            val response = apiService.getUserById(id)
+            if (response.isSuccessful) response.body() else null
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     suspend fun updateUser(id: Long, user: UsuarioEntidad): UsuarioEntidad? {
         return try {
-            // Llamamos al endpoint PUT
             val response = apiService.updateUser(id, user)
             if (response.isSuccessful) response.body() else null
         } catch (e: Exception) {
@@ -46,9 +53,7 @@ class UserRemoteRepository(private val apiService: UserApiService) {
 
     suspend fun deleteUser(id: Long): Boolean {
         return try {
-            // Llamamos al endpoint DELETE
             val response = apiService.deleteUser(id)
-            // Si es exitoso (código 200-299), retornamos true
             response.isSuccessful
         } catch (e: Exception) {
             throw Exception("Error al eliminar usuario remoto: ${e.message}")
