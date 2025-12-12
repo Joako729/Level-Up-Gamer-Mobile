@@ -66,9 +66,9 @@ fun HomeScreen(navController: NavController, catalogViewModel: CatalogViewModel)
     // AQUI ESTA EL CAMBIO SOLICITADO:
     // Se cambió el título a "Computación" y el filtro también a "Computación"
     val categoryNavItems = listOf(
-        CategoryNavigationItem("Accesorios", R.drawable.accesorios, "Accesorios"),
-        CategoryNavigationItem("Consolas", R.drawable.consolas, "Consolas"),
-        CategoryNavigationItem("Computación", R.drawable.pcgamer, "Computación")
+        CategoryNavigationItem("Accesorios", R.drawable.ic_launcher_foreground, "Accesorios"),
+        CategoryNavigationItem("Consolas", R.drawable.ic_launcher_foreground, "Consolas"),
+        CategoryNavigationItem("Computación", R.drawable.ic_launcher_foreground, "Computación")
     )
 
     Scaffold(
@@ -325,7 +325,7 @@ fun GamingNewsCard(article: Article, modifier: Modifier = Modifier) {
                     .height(150.dp)
                     .fillMaxWidth(),
                 contentScale = ContentScale.Crop,
-                error = painterResource(R.drawable.noticia1)
+                error = painterResource(R.drawable.ic_launcher_foreground)
             )
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -363,7 +363,7 @@ fun GamingNewsPlaceholderCard(modifier: Modifier = Modifier) {
     ) {
         Column {
             Image(
-                painter = painterResource(id = R.drawable.noticia1),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "Noticia sobre Realidad Virtual",
                 modifier = Modifier
                     .height(150.dp)
